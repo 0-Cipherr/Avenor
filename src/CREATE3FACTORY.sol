@@ -5,6 +5,16 @@ import {CREATE3} from "solmate/utils/CREATE3.sol";
 
 import {ICREATE3FACTORY} from "./ICREATE3FACTORY.sol";
 
+/**
+ * "COmpleted first test dpeloyment of Create3Factory we plan on launching a
+ *  factory on all chains for our product. THepurpose of this factory
+ *  isto allow or  determiistic addresses all across evm it makes thigns
+ * simpler as we only have the same address for all vaults on all chains
+ * in comparison to a regular dpeloyment all addresses are different as we
+ *  add more chains on evm the list will grow insanely large and will cost more
+ *  to execute transactions in vaults"
+ */
+
 /// @title Factory for deploying contracts to deterministic addresses via CREATE3
 /// @author zefram.eth
 /// @notice Enables deploying contracts using CREATE3. Each deployer (msg.sender) has
