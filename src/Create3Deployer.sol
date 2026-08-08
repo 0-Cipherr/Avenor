@@ -112,7 +112,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
     uint256 chainId;
 
     Factory public EVMFACTORYINFO;
-    Create3FactoryPeerInfo[] Create3FactoryPeers;
+    Create3FactoryPeerInfo[] public Create3FactoryPeers;
 
     /**
      * _endpoint :
@@ -162,9 +162,11 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         return EVMFACTORYINFO;
     }
 
-    function getMessengerDeployQuote() public view returns (uint256) {
-        uint256 total;
-
+    function getMessengerDeployQuote()
+        public
+        view
+        returns (uint256 total, MessagingFee[] memory fees)
+    {
         for (uint256 i = 0; i < Create3FactoryPeers.length; i++) {
             Create3FactoryPeerInfo
                 memory currentMessenger = Create3FactoryPeers[i];
@@ -180,11 +182,10 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
                 bytes(""),
                 false
             );
+            fees[i] = (fee);
 
             total += fee.nativeFee;
         }
-
-        return total;
     }
 
     function createOptions() public {}
