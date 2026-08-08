@@ -107,6 +107,10 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         uint256 chainId;
     }
 
+    address endpoint_;
+    uint32 endpointId;
+    uint256 chainId;
+
     Factory public EVMFACTORYINFO;
     Create3FactoryPeerInfo[] Create3FactoryPeers;
 
@@ -131,8 +135,12 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
     constructor(
         address _endpoint,
         address _delegate,
+        uint32 _endpointId,
         Create3FactoryPeerInfo[] memory _Create3FactoryPeers
     ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {
+        endpoint_ = _endpoint;
+        endpointId = _endpointId;
+        chainId = block.chainid;
         if (_Create3FactoryPeers.length > 0) {
             pushCREATE3FactoryPeers(_Create3FactoryPeers);
             addFactoryMessengerPeers();

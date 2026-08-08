@@ -11,7 +11,7 @@ import {Create3FactoryMessenger} from "../src/Create3FactoryMessenger.sol";
 /**
  * template format for runing script 
 forge script script/CreateFactoryTest.s.sol --rpc-url https://sepolia.gateway.tenderly.co --account Avenor_Multi --broadcast
-forge script script/FactoryMesengerScript.s.sol https://api.zan.top/arb-sepolia --account Avenor_Multi --broadcast
+forge script script/FactoryMesengerScript.s.sol --rpc-url https://api.zan.top/arb-sepolia --account Avenor_Multi --broadcast
 /chains with funds sepolia op nd arbitrum
 
  */

@@ -47,7 +47,7 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
         factory = new CREATE3FACTORY();
     }
 
-    function messageQuote() public returns (MessagingFee memory) {}
+    // function messageQuote() public returns (MessagingFee memory) {}
 
     function sendessage() public {}
 
@@ -72,3 +72,17 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
         // uint256 data = abi.decode(_message, (uint256));
     }
 }
+
+//deployed messenger to test
+/**
+ * Deployed on arbitrum sepolia we will deploy the facotory deployer on op sepolia
+ *   Deployed Messenger Address:
+  0xF1BA2bD959776F699cc1071c8AC106dd5B729271
+  Endpoint Deployed at:
+  0x6EDCE65403992e310A62460808c4b910D972f10f
+  Endpoint id Deployed at:
+  40231
+  Chain Id:
+  421614
+
+ */
