@@ -175,11 +175,14 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
                 EVMFACTORYINFO.factory.salt,
                 EVMFACTORYINFO.factory.creationCode
             );
+            bytes memory options = OptionsBuilder
+                .newOptions()
+                .addExecutorLzReceiveOption(200000, 0);
             //fix properly add options and check for paying ith layerzero token
             MessagingFee memory fee = messageQuote(
                 currentMessenger.endpointId,
                 message,
-                bytes(""),
+                options,
                 false
             );
             fees[i] = (fee);
@@ -251,12 +254,15 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
                 EVMFACTORYINFO.factory.salt,
                 EVMFACTORYINFO.factory.creationCode
             );
+            bytes memory options = OptionsBuilder
+                .newOptions()
+                .addExecutorLzReceiveOption(200000, 0);
             //fix options bytes("") shoudl be proper options and pay in lz
             //also check fees[] should not conflict verify length and validity or call bulk quoter again
             sendMessage(
                 currentMessenger.endpointId,
                 message,
-                bytes(""),
+                options,
                 fees[i],
                 caller
             );

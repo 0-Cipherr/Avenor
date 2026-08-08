@@ -46,6 +46,9 @@ contract VaultFactoryTest is Script {
         );
         (uint256 total, MessagingFee[] memory fees) = factory
             .getMessengerDeployQuote();
+
+        console.log("Fee total to deploy");
+        console.logUint(total);
         deployDeteministicFactory(total, fees);
         vm.stopBroadcast();
     }
