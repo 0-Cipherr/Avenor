@@ -6,6 +6,7 @@ import {console} from "forge-std/console.sol";
 import {CREATE3FACTORY} from "../src/CREATE3FACTORY.sol";
 import {ICREATE3FACTORY} from "../src/ICREATE3FACTORY.sol";
 import "forge-std/console.sol";
+import {Create3FactoryMessenger} from "./Create3FactoryMessenger.sol";
 /////////
 import {
     OptionsBuilder
@@ -159,8 +160,8 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         for (uint256 i = 0; i < Create3FactoryPeers.length; i++) {
             Create3FactoryPeerInfo
                 memory currentMessenger = Create3FactoryPeers[i];
-            bytes memory message = abi.encodeWithSignature(
-                "deploy(bytes,bytes32)",
+            bytes memory message = abi.encodeWithSelector(
+                Create3FactoryMessenger.deploy.selector,
                 EVMFACTORYINFO.factory.salt,
                 EVMFACTORYINFO.factory.creationCode
             );
@@ -287,7 +288,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         bytes calldata _message,
         address /*_executor*/,
         bytes calldata /*_extraData*/
-    ) internal pure override {
+    ) internal override {
         // 1. Decode the returned data from bytes to uint256
         // uint256 data = abi.decode(_message, (uint256));
     }

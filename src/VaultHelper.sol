@@ -10,3 +10,6 @@ library VaultHelper {
         return address(uint160(uint256(bytes32Value)));
     }
 }
+
+// /purpose developer deploy strategies accross al chains use ai to route best strategies on out protocol
+//make framowrk for strategy automation and ther ways to amplify yields across chains

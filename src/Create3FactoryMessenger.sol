@@ -43,11 +43,21 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
     constructor(
         address _endpoint,
         address _delegate
-    ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {}
+    ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {
+        factory = new CREATE3FACTORY();
+    }
 
     function messageQuote() public returns (MessagingFee memory) {}
 
     function sendessage() public {}
+
+    function deploy(bytes32 salt, bytes memory creationCode) public {
+        factory.deploy(salt, creationCode);
+    }
+
+    function getDeploymentAddress() public view returns (address) {
+        return address(this);
+    }
 
     function _lzReceive(
         Origin calldata /*_origin*/,
@@ -56,7 +66,9 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
         address /*_executor*/,
         bytes calldata /*_extraData*/
     ) internal override {
+        (bool success, ) = address(this).call(abi.encodePacked(_message));
+        require(success, "Execution failed");
         // 1. Decode the returned data from bytes to uint256
-        uint256 data = abi.decode(_message, (uint256));
+        // uint256 data = abi.decode(_message, (uint256));
     }
 }
