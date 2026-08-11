@@ -167,6 +167,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         view
         returns (uint256 total, MessagingFee[] memory fees)
     {
+        fees = new MessagingFee[](Create3FactoryPeers.length);
         for (uint256 i = 0; i < Create3FactoryPeers.length; i++) {
             Create3FactoryPeerInfo
                 memory currentMessenger = Create3FactoryPeers[i];
@@ -244,13 +245,12 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         address caller,
         MessagingFee[] memory fees
     ) public payable returns (bool) {
-        require(total == msg.value, "Not enough to cover fees!");
         //make custom modifier to verifiy amount is total of fees call message quoter again modifier to proerly verify
         for (uint256 i = 0; i < Create3FactoryPeers.length; i++) {
             Create3FactoryPeerInfo
                 memory currentMessenger = Create3FactoryPeers[i];
             bytes memory message = abi.encodeWithSignature(
-                "deploy(bytes,bytes32)",
+                "deploy(bytes32,bytes)",
                 EVMFACTORYINFO.factory.salt,
                 EVMFACTORYINFO.factory.creationCode
             );
@@ -308,3 +308,32 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         // uint256 data = abi.decode(_message, (uint256));
     }
 }
+
+/**
+ * trace error: 
+ * Traces:
+  [151335] Create2Deployer::create2()
+    ├─ [118990] → new VaultHelper@0xAc84B2a1d251218be62d4d0683aeBA09cD734a3F
+    │   └─ ← [Return] 594 bytes of code
+    └─ ← [Return] 0xac84b2a1d251218be62d4d0683aeba09cd734a3f
+
+  [6462747] → new VaultFactoryTest@0x5b73C5498c1E3b4dbA84de0F1833c4a029d90519
+    └─ ← [Return] 32161 bytes of code
+
+  [122] VaultFactoryTest::setUp()
+    └─ ← [Stop]
+
+  [144091] VaultFactoryTest::run()
+    ├─ [0] VM::startBroadcast()
+    │   └─ ← [Return]
+    ├─ [100947] → new <unknown>@0xB985501503d7758f9484aAaCF14766B1ae14bb62
+    │   ├─ emit OwnershipTransferred(previousOwner: 0x0000000000000000000000000000000000000000, newOwner: 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d)
+    │   ├─ [23959] 0x6EDCE65403992e310A62460808c4b910D972f10f::setDelegate(0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d)
+    │   │   ├─ emit DelegateSet(sender: 0xB985501503d7758f9484aAaCF14766B1ae14bb62, delegate: 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d)
+    │   │   └─ ← [Stop]
+    │   └─ ← [Revert] 0x4e487b710000000000000000000000000000000000000000000000000000000000000011
+    └─ ← [Revert] panic: arithmetic underflow or overflow (0x11)
+
+
+
+ */

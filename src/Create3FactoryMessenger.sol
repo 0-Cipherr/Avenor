@@ -52,7 +52,7 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
     function sendessage() public {}
 
     function deploy(bytes32 salt, bytes memory creationCode) public {
-        factory.deploy(salt, creationCode);
+        (address deplyoed) = factory.deploy(salt, creationCode);
     }
 
     function getDeploymentAddress() public view returns (address) {

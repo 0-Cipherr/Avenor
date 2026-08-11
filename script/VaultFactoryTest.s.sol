@@ -32,7 +32,7 @@ contract VaultFactoryTest is Script {
         Create3Deployer.Create3FactoryPeerInfo
             memory Create3FactoryPeer = Create3Deployer.Create3FactoryPeerInfo(
                 0x6EDCE65403992e310A62460808c4b910D972f10f,
-                0xF1BA2bD959776F699cc1071c8AC106dd5B729271,
+                0xb023AA16d370dcC7e9c1Ce6B9BAb50aD60fEd0F7,
                 40231,
                 421614
             );
@@ -49,7 +49,9 @@ contract VaultFactoryTest is Script {
 
         console.log("Fee total to deploy");
         console.logUint(total);
-        deployDeteministicFactory(total, fees);
+        factory.deployFactories{value: total}(total, msg.sender, fees);
+
+        // deployDeteministicFactory(total, fees);
         vm.stopBroadcast();
     }
 
