@@ -26,6 +26,7 @@ forge script script/FactoryMesengerScript.s.sol --rpc-url wss://arbitrum-sepolia
  */
 
 contract FactoryMesengerScript is Script {
+    Create3FactoryMessenger messengerDeployed;
     function setUp() public {}
     ///left off deployinon another chain making sure address is the same
     function run() public {
@@ -43,10 +44,7 @@ contract FactoryMesengerScript is Script {
         address _delegate,
         uint32 _endpointId
     ) public {
-        Create3FactoryMessenger messengerDeployed = new Create3FactoryMessenger(
-            _endpoint,
-            _delegate
-        );
+        messengerDeployed = new Create3FactoryMessenger(_endpoint, _delegate);
 
         console.log("Deployed Messenger Address:");
         console.logAddress(messengerDeployed.getDeploymentAddress());

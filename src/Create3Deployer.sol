@@ -147,6 +147,16 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         }
     }
 
+    function getCREATE3FactoryPeer(
+        uint256 index
+    ) public view returns (Create3FactoryPeerInfo memory) {
+        return Create3FactoryPeers[index];
+    }
+
+    function setCREATE3FACTORY(Create3FactoryPeerInfo memory _peer) public {
+        Create3FactoryPeers.push(_peer);
+    }
+
     /**
      * Pushes Fctory peers to Create3FactoryPeers upon deployment if it exists important must exist
      */

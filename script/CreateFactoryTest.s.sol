@@ -81,6 +81,8 @@ contract CreateFactoryTest is Script {
             factory = new CREATE3FACTORY();
 
             (address deployed) = factory.deploy(__salt, __creationCode);
+            factory = CREATE3FACTORY(deployed); //assigning deployed deterministic address on hub chain
+
             console.log("Deterministic address deployed: ");
             console.logAddress(deployed);
         }
