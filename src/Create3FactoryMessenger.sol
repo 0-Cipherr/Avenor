@@ -39,7 +39,8 @@ import {
  * same address for all vaults accross evm makes things easier
  */
 contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
-    CREATE3FACTORY factory;
+    CREATE3FACTORY public factory; //factory deployed with deterministic addr
+    address public factoryDeterministic;
     constructor(
         address _endpoint,
         address _delegate
@@ -52,11 +53,17 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
     function sendessage() public {}
 
     function deploy(bytes32 salt, bytes memory creationCode) public {
-        (address deplyoed) = factory.deploy(salt, creationCode);
+        (address deployed) = factory.deploy(salt, creationCode);
+        factory = CREATE3FACTORY(deployed);
+        factoryDeterministic = deployed;
     }
 
     function getDeploymentAddress() public view returns (address) {
         return address(this);
+    }
+
+    function getDeterministicFactory() public view returns (address) {
+        return factoryDeterministic;
     }
 
     function _lzReceive(

@@ -32,17 +32,18 @@ contract VaultFactoryTest is Script {
         Create3Deployer.Create3FactoryPeerInfo
             memory Create3FactoryPeer = Create3Deployer.Create3FactoryPeerInfo(
                 0x6EDCE65403992e310A62460808c4b910D972f10f,
-                0xb023AA16d370dcC7e9c1Ce6B9BAb50aD60fEd0F7,
+                0x6f194f148B710B14C7a04778c9E212526Fe08c56,
                 40231,
                 421614
             );
 
         peers[0] = Create3FactoryPeer;
+        //the create factory on hb is base the factry messenger is deployedon abitrum
         deployFactoryTest(
             0x6EDCE65403992e310A62460808c4b910D972f10f,
             msg.sender,
             peers,
-            40232
+            40245
         );
         (uint256 total, MessagingFee[] memory fees) = factory
             .getMessengerDeployQuote();
@@ -71,9 +72,13 @@ contract VaultFactoryTest is Script {
             _endpointId,
             _Create3FactoryPeers
         );
-        factory.deployFactory("Default Factory");
+        address deterministicFactory = factory.deployFactory("Default Factory");
+
         Create3Deployer.Factory memory factoryDeployedInfo = factory
             .getFactoryInfo();
+
+        console.log("Determistic create 3 deployed:");
+        console.logAddress(deterministicFactory);
 
         console.log("Deployed Factory Address:");
         console.logAddress(address(factoryDeployedInfo.factory.factory));

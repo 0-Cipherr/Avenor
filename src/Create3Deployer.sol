@@ -110,6 +110,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
     address endpoint_;
     uint32 endpointId;
     uint256 chainId;
+    address delegate;
 
     Factory public EVMFACTORYINFO;
     Create3FactoryPeerInfo[] public Create3FactoryPeers;
@@ -141,6 +142,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         endpoint_ = _endpoint;
         endpointId = _endpointId;
         chainId = block.chainid;
+        delegate = _delegate;
         if (_Create3FactoryPeers.length > 0) {
             pushCREATE3FactoryPeers(_Create3FactoryPeers);
             addFactoryMessengerPeers();
@@ -242,12 +244,19 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         EVMFACTORYINFO.chains.push(deployedChain);
     }
 
-    function deployFactory(string memory name) public {
+    //only called once and upon deplyoment only
+    function deployFactory(string memory name) public returns (address) {
         CREATE3FACTORY factory = new CREATE3FACTORY();
+
         bytes memory creationCode = type(CREATE3FACTORY).creationCode;
         bytes32 salt = generateUniqueSalt(name);
         (address deployed) = factory.deploy(salt, creationCode);
         storeCREATE3Factory(salt, creationCode, deployed, true, block.chainid);
+        return deployed; //returns deployed determisitic
+        //      address _endpoint,
+        // address _delegate,
+        // uint32 _endpointId,
+        // Create3FactoryPeerInfo[] memory _Create3FactoryPeers
     }
 
     function deployFactories(

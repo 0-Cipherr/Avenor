@@ -10,18 +10,19 @@ import {Create3FactoryMessenger} from "../src/Create3FactoryMessenger.sol";
 
 /**
  * template format for runing script 
-forge script script/VaultFactoryTest.s.sol --rpc-url https://sepolia.gateway.tenderly.co --account Avenor_Multi --broadcast
+forge script script/VaultFactoryTest.s.sol --rpc-url wss://base-sepolia.drpc.org --account Avenor_Multi --broadcast
 forge script script/FactoryMesengerScript.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
 /chains with funds sepolia op nd arbitrum
 == Logs ==
   Deployed Messenger Address:
-  0xb023AA16d370dcC7e9c1Ce6B9BAb50aD60fEd0F7
+  0x6f194f148B710B14C7a04778c9E212526Fe08c56
   Endpoint Deployed at:
   0x6EDCE65403992e310A62460808c4b910D972f10f
   Endpoint id Deployed at:
   40231
   Chain Id:
   421614
+
 
  */
 
