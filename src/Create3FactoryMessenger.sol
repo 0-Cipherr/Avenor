@@ -52,10 +52,25 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
 
     function sendessage() public {}
 
-    function deploy(bytes32 salt, bytes memory creationCode) public {
+    function deploy(
+        bytes32 salt,
+        bytes memory creationCode
+    ) public returns (address) {
         (address deployed) = factory.deploy(salt, creationCode);
+        return deployed;
+    }
+
+    function factoryInitDeployment(
+        bytes32 salt,
+        bytes memory creationCode
+    ) public {
+        address deployed = deploy(salt, creationCode);
+        setFactory(deployed);
+    }
+
+    function setFactory(address deployed) public {
         factory = CREATE3FACTORY(deployed);
-        factoryDeterministic = deployed;
+        factoryDeterministic = deployed; //we store this so its ez for devs to use
     }
 
     function getDeploymentAddress() public view returns (address) {
@@ -73,7 +88,7 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
         address /*_executor*/,
         bytes calldata /*_extraData*/
     ) internal override {
-        (bool success, ) = address(this).call(abi.encodePacked(_message));
+        (bool success, ) = address(this).call(_message);
         require(success, "Execution failed");
         // 1. Decode the returned data from bytes to uint256
         // uint256 data = abi.decode(_message, (uint256));

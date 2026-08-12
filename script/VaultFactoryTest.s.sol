@@ -29,16 +29,21 @@ contract VaultFactoryTest is Script {
         //fill in the array this address in array is wrong put to prevent annoying red error thing
         Create3Deployer.Create3FactoryPeerInfo[]
             memory peers = new Create3Deployer.Create3FactoryPeerInfo[](1);
+
+        //create the necessary struct with information about the messenger we deployed on arbitrum
+
         Create3Deployer.Create3FactoryPeerInfo
             memory Create3FactoryPeer = Create3Deployer.Create3FactoryPeerInfo(
                 0x6EDCE65403992e310A62460808c4b910D972f10f,
-                0x6f194f148B710B14C7a04778c9E212526Fe08c56,
+                0x3B24C8a2B97fEa6b879F25dD28aAd6173d4EF737,
                 40231,
                 421614
             );
 
+        //add it to the peers array to pass into our custom deployer
         peers[0] = Create3FactoryPeer;
         //the create factory on hb is base the factry messenger is deployedon abitrum
+        //deploys our deployer adds the peer and calls the peer to deploy matching address
         deployFactoryTest(
             0x6EDCE65403992e310A62460808c4b910D972f10f,
             msg.sender,
@@ -47,10 +52,10 @@ contract VaultFactoryTest is Script {
         );
         (uint256 total, MessagingFee[] memory fees) = factory
             .getMessengerDeployQuote();
+        factory.deployFactories{value: total}(total, msg.sender, fees);
 
         console.log("Fee total to deploy");
         console.logUint(total);
-        factory.deployFactories{value: total}(total, msg.sender, fees);
 
         // deployDeteministicFactory(total, fees);
         vm.stopBroadcast();

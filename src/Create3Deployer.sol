@@ -184,7 +184,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
             Create3FactoryPeerInfo
                 memory currentMessenger = Create3FactoryPeers[i];
             bytes memory message = abi.encodeWithSelector(
-                Create3FactoryMessenger.deploy.selector,
+                Create3FactoryMessenger.factoryInitDeployment.selector,
                 EVMFACTORYINFO.factory.salt,
                 EVMFACTORYINFO.factory.creationCode
             );
@@ -264,12 +264,13 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         address caller,
         MessagingFee[] memory fees
     ) public payable returns (bool) {
+        require(msg.value == total, "not enough");
         //make custom modifier to verifiy amount is total of fees call message quoter again modifier to proerly verify
         for (uint256 i = 0; i < Create3FactoryPeers.length; i++) {
             Create3FactoryPeerInfo
                 memory currentMessenger = Create3FactoryPeers[i];
-            bytes memory message = abi.encodeWithSignature(
-                "deploy(bytes32,bytes)",
+            bytes memory message = abi.encodeWithSelector(
+                Create3FactoryMessenger.factoryInitDeployment.selector,
                 EVMFACTORYINFO.factory.salt,
                 EVMFACTORYINFO.factory.creationCode
             );
@@ -311,7 +312,13 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         MessagingFee memory _fee,
         address _refundAddress
     ) public returns (bool) {
-        _lzSend(_dstEid, _message, _options, _fee, _refundAddress);
+        (MessagingReceipt memory receipt) = _lzSend(
+            _dstEid,
+            _message,
+            _options,
+            _fee,
+            _refundAddress
+        );
         return true;
     }
 
