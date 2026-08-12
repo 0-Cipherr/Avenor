@@ -54,6 +54,10 @@ contract VaultFactoryTest is Script {
         // deployDeteministicFactory(total, fees);
         vm.stopBroadcast();
     }
+    //     bytes memory creationCode = abi.encodePacked(
+    //     type(Vault).creationCode,
+    //     abi.encode(owner, fee)
+    // );
 
     function deployFactoryTest(
         address endpoint,
