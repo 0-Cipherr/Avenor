@@ -12,8 +12,8 @@ import {
 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 /**
  * template format for runing script 
-forge script script/VaultFactoryTest.s.sol --rpc-url https://sepolia.gateway.tenderly.co --account Avenor_Tetnet --broadcast
-forge script script/VaultFactoryTest.s.sol --rpc-url https://base-sepolia.gateway.tenderly.co --account Avenor_Tetnet --broadcast
+forge script script/VaultFactoryTest.s.sol --rpc-url wss://base-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
+
 
 
  */
@@ -35,13 +35,14 @@ contract VaultFactoryTest is Script {
         Create3Deployer.Create3FactoryPeerInfo
             memory Create3FactoryPeer = Create3Deployer.Create3FactoryPeerInfo(
                 0x6EDCE65403992e310A62460808c4b910D972f10f,
-                0x3B24C8a2B97fEa6b879F25dD28aAd6173d4EF737,
+                0x5079cb98DE8b4eADF6f921a9b2B02c71e929048e,
                 40231,
                 421614
             );
 
         //add it to the peers array to pass into our custom deployer
         peers[0] = Create3FactoryPeer;
+
         //the create factory on hb is base the factry messenger is deployedon abitrum
         //deploys our deployer adds the peer and calls the peer to deploy matching address
         deployFactoryTest(
@@ -50,12 +51,6 @@ contract VaultFactoryTest is Script {
             peers,
             40245
         );
-        (uint256 total, MessagingFee[] memory fees) = factory
-            .getMessengerDeployQuote();
-        factory.deployFactories{value: total}(total, msg.sender, fees);
-
-        console.log("Fee total to deploy");
-        console.logUint(total);
 
         // deployDeteministicFactory(total, fees);
         vm.stopBroadcast();
@@ -71,17 +66,28 @@ contract VaultFactoryTest is Script {
         Create3Deployer.Create3FactoryPeerInfo[] memory _Create3FactoryPeers,
         uint32 _endpointId
     ) public {
+        CREATE3FACTORY create3factory = new CREATE3FACTORY();
+        bytes memory creationCode = type(CREATE3FACTORY).creationCode;
+
         factory = new Create3Deployer(
             endpoint,
             delegate,
             _endpointId,
-            _Create3FactoryPeers
+            _Create3FactoryPeers,
+            create3factory
         );
-        address deterministicFactory = factory.deployFactory("Default Factory");
+        (bool success, ) = address(factory).call{value: 0.05 ether}("");
+        require(success, "ETH Transfer Failed");
+        address deterministicFactory = factory.deployFactory(
+            creationCode,
+            "Default Factory"
+        );
 
         Create3Deployer.Factory memory factoryDeployedInfo = factory
             .getFactoryInfo();
 
+        console.log("Deployed deployer addr:");
+        console.logAddress(address(factory));
         console.log("Determistic create 3 deployed:");
         console.logAddress(deterministicFactory);
 
@@ -90,14 +96,7 @@ contract VaultFactoryTest is Script {
 
         console.log("SALT:");
         console.logBytes32(factoryDeployedInfo.factory.salt);
-        console.log("CREATIONCODE:");
-        console.logBytes(factoryDeployedInfo.factory.creationCode);
-    }
-
-    function deployDeteministicFactory(
-        uint256 total,
-        MessagingFee[] memory fees
-    ) public payable {
-        factory.deployFactories{value: msg.value}(total, msg.sender, fees);
+        console.log("Initial create3Factory Address:");
+        console.logAddress(address(create3factory));
     }
 }

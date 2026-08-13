@@ -34,14 +34,14 @@ import {
     Origin,
     MessagingFee
 } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-
+import {ICREATE3FACTORY} from "../src/ICREATE3FACTORY.sol";
 //vault factory maybe on another file
 contract Create3Deployer is OAppRead, OAppOptionsType3 {
     using OptionsBuilder for bytes;
 
     using VaultHelper for address;
     using VaultHelper for bytes32;
-
+    ICREATE3FACTORY factory;
     /**
      * KEY TAKEAWAY:
      * This Create3Deployer factory is only deployed nce the Factory Messenger facilitates
@@ -133,20 +133,32 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
      * after this users can deploy vaults how they want on what chians they want
      *
      */
+
     constructor(
         address _endpoint,
         address _delegate,
         uint32 _endpointId,
-        Create3FactoryPeerInfo[] memory _Create3FactoryPeers
+        Create3FactoryPeerInfo[] memory _Create3FactoryPeers,
+        ICREATE3FACTORY _factory
     ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {
         endpoint_ = _endpoint;
         endpointId = _endpointId;
         chainId = block.chainid;
         delegate = _delegate;
+        factory = _factory;
         if (_Create3FactoryPeers.length > 0) {
             pushCREATE3FactoryPeers(_Create3FactoryPeers);
             addFactoryMessengerPeers();
         }
+    }
+
+    function setMessengerPeer(uint32 _eid, address _peer) public {
+        bytes32 convertedPeerAddr = addressToBytes(_peer);
+        setPeer(_eid, convertedPeerAddr);
+    }
+
+    function addressToBytes(address _addr) public pure returns (bytes32) {
+        return bytes32(uint256(uint160(_addr)));
     }
 
     function getCREATE3FactoryPeer(
@@ -173,6 +185,9 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
     function getFactoryInfo() public view returns (Factory memory) {
         return EVMFACTORYINFO;
     }
+
+    //in order to recieve my fundign for tests contracts must always have this fucntion
+    receive() external payable {}
 
     function getMessengerDeployQuote()
         public
@@ -214,10 +229,12 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         Create3FactoryPeers.push(_Create3FactoryPeers);
     }
 
-    function generateUniqueSalt(
-        string memory name
-    ) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(name, block.timestamp));
+    uint256 currentId = 0;
+
+    //be careful how u make salts it can causecontracts not to deploy i used timestamp earlier wouldnt dpeoy
+    function generateUniqueSalt(string memory name) public returns (bytes32) {
+        return keccak256(abi.encodePacked(name, currentId));
+        ++currentId;
     }
 
     function addFactoryMessengerPeers() public {
@@ -245,18 +262,24 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
     }
 
     //only called once and upon deplyoment only
-    function deployFactory(string memory name) public returns (address) {
-        CREATE3FACTORY factory = new CREATE3FACTORY();
-
-        bytes memory creationCode = type(CREATE3FACTORY).creationCode;
+    function deployFactory(
+        bytes memory creationCode,
+        string memory name
+    ) public returns (address) {
         bytes32 salt = generateUniqueSalt(name);
+        //this is how we pass in constructor args to .deploy
+
         (address deployed) = factory.deploy(salt, creationCode);
         storeCREATE3Factory(salt, creationCode, deployed, true, block.chainid);
         return deployed; //returns deployed determisitic
         //      address _endpoint,
-        // address _delegate,
+        // address _delegate,Eendpoint, delegate, endpointId, Create3FactoryPeers
         // uint32 _endpointId,
         // Create3FactoryPeerInfo[] memory _Create3FactoryPeers
+    }
+
+    function getEVMFACTORYINFO() public returns (Factory memory) {
+        return EVMFACTORYINFO;
     }
 
     function deployFactories(

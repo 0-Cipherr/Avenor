@@ -10,18 +10,19 @@ import {Create3FactoryMessenger} from "../src/Create3FactoryMessenger.sol";
 
 /**
  * template format for runing script 
-forge script script/VaultFactoryTest.s.sol --rpc-url wss://base-sepolia.drpc.org --account Avenor_Multi --broadcast
 forge script script/FactoryMesengerScript.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
 /chains with funds sepolia op nd arbitrum
 == Logs ==
   Deployed Messenger Address:
-  0x6f194f148B710B14C7a04778c9E212526Fe08c56
+  0x6050464021C9F2eB3280Da7A7604beD9823375b6
   Endpoint Deployed at:
   0x6EDCE65403992e310A62460808c4b910D972f10f
   Endpoint id Deployed at:
   40231
   Chain Id:
   421614
+
+
 
 
  */
@@ -37,6 +38,10 @@ contract FactoryMesengerScript is Script {
         address delegate = msg.sender;
         uint32 endpointId = 40231;
         deployFactoryMessenger(endpoint, delegate, endpointId);
+        (bool success, ) = address(messengerDeployed).call{value: 0.01 ether}(
+            ""
+        );
+        require(success, "ETH Transfer Failed");
         vm.stopBroadcast();
     }
 
@@ -48,7 +53,7 @@ contract FactoryMesengerScript is Script {
         messengerDeployed = new Create3FactoryMessenger(_endpoint, _delegate);
 
         console.log("Deployed Messenger Address:");
-        console.logAddress(messengerDeployed.getDeploymentAddress());
+        console.logAddress(address(messengerDeployed));
         console.log("Endpoint Deployed at:");
         console.logAddress(_endpoint);
         console.log("Endpoint id Deployed at:");

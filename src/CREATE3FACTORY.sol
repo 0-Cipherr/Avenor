@@ -25,7 +25,6 @@ contract CREATE3FACTORY is ICREATE3FACTORY {
         bytes memory creationCode
     ) external payable override returns (address deployed) {
         // hash salt with the deployer address to give each deployer its own namespace
-        salt = keccak256(abi.encodePacked(msg.sender, salt));
         return CREATE3.deploy(salt, creationCode, msg.value);
     }
 
@@ -34,7 +33,6 @@ contract CREATE3FACTORY is ICREATE3FACTORY {
         bytes32 salt
     ) external view override returns (address deployed) {
         // hash salt with the deployer address to give each deployer its own namespace
-        salt = keccak256(abi.encodePacked(deployer, salt));
         return CREATE3.getDeployed(salt);
     }
 }

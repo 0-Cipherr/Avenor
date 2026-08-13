@@ -47,7 +47,7 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
     ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {
         factory = new CREATE3FACTORY();
     }
-
+    receive() external payable {}
     // function messageQuote() public returns (MessagingFee memory) {}
 
     function sendessage() public {}
@@ -58,6 +58,17 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
     ) public returns (address) {
         (address deployed) = factory.deploy(salt, creationCode);
         return deployed;
+    }
+
+    // function setPeer
+
+    function setMessengerPeer(uint32 _eid, address _peer) public {
+        bytes32 convertedPeerAddr = addressToBytes(_peer);
+        setPeer(_eid, convertedPeerAddr);
+    }
+
+    function addressToBytes(address _addr) public pure returns (bytes32) {
+        return bytes32(uint256(uint160(_addr)));
     }
 
     function factoryInitDeployment(
