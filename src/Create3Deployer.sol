@@ -111,6 +111,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
     uint32 endpointId;
     uint256 chainId;
     address delegate;
+    uint16 public constant SEND = 1;
 
     Factory public EVMFACTORYINFO;
     Create3FactoryPeerInfo[] public Create3FactoryPeers;
@@ -203,14 +204,29 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
             EVMFACTORYINFO.factory.salt,
             EVMFACTORYINFO.factory.creationCode
         );
+        // 1. Dynamic generation stays in memory
         bytes memory options = OptionsBuilder
             .newOptions()
-            .addExecutorLzReceiveOption(200000, 0);
+            .addExecutorLzReceiveOption(200_000, 0);
+
+        // 2. Safe Assembly Pointer Overriding (Memory -> Calldata pointer mapping)
+        bytes calldata optionsCalldata;
+        assembly {
+            optionsCalldata.length := mload(options)
+            optionsCalldata.offset := add(options, 0x20)
+        }
+
+        // 3. Pass the casted pointer to combineOptions (Resolves Error 9553)
+        bytes memory combinedOptions = combineOptions(
+            Create3FactoryPeers[index].endpointId,
+            SEND,
+            optionsCalldata
+        );
         //fix properly add options and check for paying ith layerzero token
         MessagingFee memory fee = messageQuote(
             Create3FactoryPeers[index].endpointId,
             message,
-            options,
+            combinedOptions,
             false
         );
         fees = (fee);
@@ -232,14 +248,29 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
                 EVMFACTORYINFO.factory.salt,
                 EVMFACTORYINFO.factory.creationCode
             );
+            // 1. Dynamic generation stays in memory
             bytes memory options = OptionsBuilder
                 .newOptions()
-                .addExecutorLzReceiveOption(200000, 0);
+                .addExecutorLzReceiveOption(200_000, 0);
+
+            // 2. Safe Assembly Pointer Overriding (Memory -> Calldata pointer mapping)
+            bytes calldata optionsCalldata;
+            assembly {
+                optionsCalldata.length := mload(options)
+                optionsCalldata.offset := add(options, 0x20)
+            }
+
+            // 3. Pass the casted pointer to combineOptions (Resolves Error 9553)
+            bytes memory combinedOptions = combineOptions(
+                currentMessenger.endpointId,
+                SEND,
+                optionsCalldata
+            );
             //fix properly add options and check for paying ith layerzero token
             MessagingFee memory fee = messageQuote(
                 currentMessenger.endpointId,
                 message,
-                options,
+                combinedOptions,
                 false
             );
             fees[i] = (fee);
@@ -323,14 +354,28 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
             EVMFACTORYINFO.factory.salt,
             EVMFACTORYINFO.factory.creationCode
         );
+        // 1. Dynamic generation stays in memory
         bytes memory options = OptionsBuilder
             .newOptions()
-            .addExecutorLzReceiveOption(200000, 0);
+            .addExecutorLzReceiveOption(200_000, 0);
 
+        // 2. Safe Assembly Pointer Overriding (Memory -> Calldata pointer mapping)
+        bytes calldata optionsCalldata;
+        assembly {
+            optionsCalldata.length := mload(options)
+            optionsCalldata.offset := add(options, 0x20)
+        }
+
+        // 3. Pass the casted pointer to combineOptions (Resolves Error 9553)
+        bytes memory combinedOptions = combineOptions(
+            Create3FactoryPeers[i].endpointId,
+            SEND,
+            optionsCalldata
+        );
         sendMessage(
             Create3FactoryPeers[i].endpointId,
             message,
-            options,
+            combinedOptions,
             fee,
             payable(msg.sender)
         );
@@ -352,15 +397,30 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
                 EVMFACTORYINFO.factory.salt,
                 EVMFACTORYINFO.factory.creationCode
             );
+            // 1. Dynamic generation stays in memory
             bytes memory options = OptionsBuilder
                 .newOptions()
-                .addExecutorLzReceiveOption(200000, 0);
+                .addExecutorLzReceiveOption(200_000, 0);
+
+            // 2. Safe Assembly Pointer Overriding (Memory -> Calldata pointer mapping)
+            bytes calldata optionsCalldata;
+            assembly {
+                optionsCalldata.length := mload(options)
+                optionsCalldata.offset := add(options, 0x20)
+            }
+
+            // 3. Pass the casted pointer to combineOptions (Resolves Error 9553)
+            bytes memory combinedOptions = combineOptions(
+                Create3FactoryPeers[i].endpointId,
+                SEND,
+                optionsCalldata
+            );
             //fix options bytes("") shoudl be proper options and pay in lz
             //also check fees[] should not conflict verify length and validity or call bulk quoter again
             sendMessage(
                 currentMessenger.endpointId,
                 message,
-                options,
+                combinedOptions,
                 fees[i],
                 caller
             );

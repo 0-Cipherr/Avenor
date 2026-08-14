@@ -28,7 +28,7 @@ forge script script/CreateDeployerFinal.s.sol --rpc-url https://base-sepolia.gat
 factory messenger deployment logs:
 == Logs ==
   Deployed Messenger Address:
-  0xeC7ab5EB09aa7B88293Aa703fD255873d27100f0
+  0x70422a8E08Fb951173552201a565AEC260d690B6
   Endpoint Deployed at:
   0x6EDCE65403992e310A62460808c4b910D972f10f
   Endpoint id Deployed at:
@@ -40,34 +40,20 @@ factory messenger deployment logs:
 
 .
 
-= Logs ==
+
+== Logs ==
   Deployed deployer addr:
-  0x0D60226A5668b034eba0654Cf5fD6dA957BdD11C
+  0xFF0ed71d5771DCC99351c84967c302A907ECd1e4
   Determistic create 3 deployed:
-  0xb59c8b0EC1bA61410319A7D6a69696F3A8f86222
+  0x466789284A15Bc65e1b2AbEf8Ba018372b66121d
   Deployed Factory Address:
-  0xb59c8b0EC1bA61410319A7D6a69696F3A8f86222
+  0x466789284A15Bc65e1b2AbEf8Ba018372b66121d
   SALT:
   0x00ec7745f44a3a8f867e60a3c6bedc9be63ba7456732a7189419a4380b870389
   Initial create3Factory Address:
-  0x2A4705BEb41A2DFd26fC9Ae8474589AcEaAC4d00
+  0xE54f34d0ACA44158B863b68D46450f657bd90D9F
 
 ## Setting up 1 EVM.
-
-
-
-
-
-## Setting up 1 EVM.
-
-
-
-
-
-
-
-
-
 
 
 
@@ -89,36 +75,36 @@ contract CreateDeployerFinal is Script {
         // STEP 1:
         // setMessenger(
         //     Create3FactoryMessenger(
-        //         payable(0xeC7ab5EB09aa7B88293Aa703fD255873d27100f0)
+        //         payable(0x70422a8E08Fb951173552201a565AEC260d690B6)
         //     )
         // );
 
-        // setMessengerPeer(40245, 0x0D60226A5668b034eba0654Cf5fD6dA957BdD11C);
+        // setMessengerPeer(40245, 0xFF0ed71d5771DCC99351c84967c302A907ECd1e4);
         // messenger.flush(msg.sender);
         //STEP 2:
 
         setDeployer(
-            Create3Deployer(payable(0x0D60226A5668b034eba0654Cf5fD6dA957BdD11C))
+            Create3Deployer(payable(0xFF0ed71d5771DCC99351c84967c302A907ECd1e4))
         );
-        Create3Deployer.Create3FactoryPeerInfo memory info = getPeer(0);
-        console.log("=== Create3FactoryPeerInfo ===");
+        // Create3Deployer.Create3FactoryPeerInfo memory info = getPeer(0);
+        // console.log("=== Create3FactoryPeerInfo ===");
 
-        console.log("Endpoint:");
-        console.logAddress(info.endpoint);
+        // console.log("Endpoint:");
+        // console.logAddress(info.endpoint);
 
-        console.log("Messenger Address:");
-        console.logAddress(info.messengerAddr);
+        // console.log("Messenger Address:");
+        // console.logAddress(info.messengerAddr);
 
-        console.log("Endpoint ID:");
-        console.logUint(uint256(info.endpointId));
+        // console.log("Endpoint ID:");
+        // console.logUint(uint256(info.endpointId));
 
-        console.log("Chain ID:");
-        console.logUint(info.chainId);
+        // console.log("Chain ID:");
+        // console.logUint(info.chainId);
 
-        console.log("==============================");
+        // console.log("==============================");
         // deployer.flush(msg.sender); // use in step3 too
 
-        // setDeployerPeer(40231, 0xeC7ab5EB09aa7B88293Aa703fD255873d27100f0);
+        // setDeployerPeer(40231, 0x70422a8E08Fb951173552201a565AEC260d690B6);
 
         //STEP 3:
         /**gets quote and deplyos factory iwth same address n another chain  */
@@ -130,7 +116,7 @@ contract CreateDeployerFinal is Script {
         console.logUint(totalAmount);
         console.log("NATIVE FEE");
         console.logUint(feesList.nativeFee);
-        // deployDeployerFactories(totalAmount, msg.sender, feesList[0]);
+        deployDeployerFactories(totalAmount, msg.sender, feesList);
 
         //used to test the dpeloyment works on determistic:
         // testDeterministicFactory(0xb59c8b0EC1bA61410319A7D6a69696F3A8f86222);
