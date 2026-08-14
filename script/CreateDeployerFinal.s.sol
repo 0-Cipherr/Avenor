@@ -17,8 +17,8 @@ import {
 forge script script/VaultFactoryTest.s.sol --rpc-url https://base-sepolia.gateway.tenderly.co --account Avenor_Multi --broadcast
 forge script script/FactoryMesengerScript.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast 
 forge script script/FactoryMesengerScript.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast && forge script script/VaultFactoryTest.s.sol --rpc-url https://base-sepolia.gateway.tenderly.co --account Avenor_Tetnet --broadcast
-forge script script/CreateDeployerFinal.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
-forge script script/CreateDeployerFinal.s.sol --rpc-url https://base-sepolia.gateway.tenderly.co --account Avenor_Multi --broadcast
+forge script script/CreateDeployerFinal.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast --tc CreateDeployerFinal
+forge script script/CreateDeployerFinal.s.sol --rpc-url https://base-sepolia.gateway.tenderly.co --account Avenor_Multi --broadcast --tc CreateDeployerFinal
 
 
 
@@ -26,10 +26,9 @@ forge script script/CreateDeployerFinal.s.sol --rpc-url https://base-sepolia.gat
 
 
 factory messenger deployment logs:
-
-= Logs ==
+== Logs ==
   Deployed Messenger Address:
-  0x5079cb98DE8b4eADF6f921a9b2B02c71e929048e
+  0xeC7ab5EB09aa7B88293Aa703fD255873d27100f0
   Endpoint Deployed at:
   0x6EDCE65403992e310A62460808c4b910D972f10f
   Endpoint id Deployed at:
@@ -39,18 +38,25 @@ factory messenger deployment logs:
 
 ## Setting up 1 EVM.
 
+.
 
-== Logs ==
+= Logs ==
   Deployed deployer addr:
-  0x38a9b81a3C8E2702b94fB12f3E44374a93EFC416
+  0x0D60226A5668b034eba0654Cf5fD6dA957BdD11C
   Determistic create 3 deployed:
-  0x7DB007f829C2feC3714DD8A937e906dCdCA87FF0
+  0xb59c8b0EC1bA61410319A7D6a69696F3A8f86222
   Deployed Factory Address:
-  0x7DB007f829C2feC3714DD8A937e906dCdCA87FF0
+  0xb59c8b0EC1bA61410319A7D6a69696F3A8f86222
   SALT:
-  0xfa0fbf7933c2a2662e775941739bd30daff37c89371a487c3e81d3ab546c554d
+  0x00ec7745f44a3a8f867e60a3c6bedc9be63ba7456732a7189419a4380b870389
   Initial create3Factory Address:
-  0x0e6aa0891Ec162B7c3474042862f7F1108452890
+  0x2A4705BEb41A2DFd26fC9Ae8474589AcEaAC4d00
+
+## Setting up 1 EVM.
+
+
+
+
 
 ## Setting up 1 EVM.
 
@@ -83,33 +89,51 @@ contract CreateDeployerFinal is Script {
         // STEP 1:
         // setMessenger(
         //     Create3FactoryMessenger(
-        //         payable(0x5079cb98DE8b4eADF6f921a9b2B02c71e929048e)
+        //         payable(0xeC7ab5EB09aa7B88293Aa703fD255873d27100f0)
         //     )
         // );
 
-        // setMessengerPeer(40245, 0x38a9b81a3C8E2702b94fB12f3E44374a93EFC416);
-
+        // setMessengerPeer(40245, 0x0D60226A5668b034eba0654Cf5fD6dA957BdD11C);
+        // messenger.flush(msg.sender);
         //STEP 2:
 
         setDeployer(
-            Create3Deployer(payable(0x38a9b81a3C8E2702b94fB12f3E44374a93EFC416))
+            Create3Deployer(payable(0x0D60226A5668b034eba0654Cf5fD6dA957BdD11C))
         );
-        // use in step3 too
+        Create3Deployer.Create3FactoryPeerInfo memory info = getPeer(0);
+        console.log("=== Create3FactoryPeerInfo ===");
 
-        // setDeployerPeer(40231, 0x5079cb98DE8b4eADF6f921a9b2B02c71e929048e);
+        console.log("Endpoint:");
+        console.logAddress(info.endpoint);
+
+        console.log("Messenger Address:");
+        console.logAddress(info.messengerAddr);
+
+        console.log("Endpoint ID:");
+        console.logUint(uint256(info.endpointId));
+
+        console.log("Chain ID:");
+        console.logUint(info.chainId);
+
+        console.log("==============================");
+        // deployer.flush(msg.sender); // use in step3 too
+
+        // setDeployerPeer(40231, 0xeC7ab5EB09aa7B88293Aa703fD255873d27100f0);
 
         //STEP 3:
         /**gets quote and deplyos factory iwth same address n another chain  */
         (
             uint256 totalAmount,
-            MessagingFee[] memory feesList
+            MessagingFee memory feesList
         ) = getDeployFactoriesQuote();
         console.log("Total:");
         console.logUint(totalAmount);
-        deployDeployerFactories(totalAmount, msg.sender, feesList);
+        console.log("NATIVE FEE");
+        console.logUint(feesList.nativeFee);
+        // deployDeployerFactories(totalAmount, msg.sender, feesList[0]);
 
         //used to test the dpeloyment works on determistic:
-        // testDeterministicFactory(0x48bBcC635d67099dff95F6Cda7679363Cff60b57);
+        // testDeterministicFactory(0xb59c8b0EC1bA61410319A7D6a69696F3A8f86222);
         vm.stopBroadcast();
     }
 
@@ -166,21 +190,27 @@ contract CreateDeployerFinal is Script {
     function getDeployFactoriesQuote()
         public
         view
-        returns (uint256 totalAmount, MessagingFee[] memory feesList)
+        returns (uint256 totalAmount, MessagingFee memory feesList)
     {
-        (uint256 total, MessagingFee[] memory fees) = deployer
-            .getMessengerDeployQuote();
+        (uint256 total, MessagingFee memory fees) = deployer
+            .getMessengerDeployQuote(0);
 
         totalAmount = total;
         feesList = fees;
     }
 
+    function getPeer(
+        uint256 index
+    ) public view returns (Create3Deployer.Create3FactoryPeerInfo memory) {
+        return deployer.getCREATE3FactoryPeer(index);
+    }
+
     function deployDeployerFactories(
         uint256 total,
         address _caller,
-        MessagingFee[] memory fees
+        MessagingFee memory fee
     ) public payable {
-        deployer.deployFactories{value: total}(total, _caller, fees);
+        deployer.deployFactoryPeer{value: total}(0, total, fee);
     }
 }
 

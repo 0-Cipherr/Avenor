@@ -104,6 +104,9 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
         // 1. Decode the returned data from bytes to uint256
         // uint256 data = abi.decode(_message, (uint256));
     }
+    function flush(address reciever) public payable {
+        payable(reciever).call{value: address(this).balance}("");
+    }
 }
 
 //deployed messenger to test

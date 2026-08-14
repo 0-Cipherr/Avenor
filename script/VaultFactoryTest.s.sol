@@ -35,7 +35,7 @@ contract VaultFactoryTest is Script {
         Create3Deployer.Create3FactoryPeerInfo
             memory Create3FactoryPeer = Create3Deployer.Create3FactoryPeerInfo(
                 0x6EDCE65403992e310A62460808c4b910D972f10f,
-                0x5079cb98DE8b4eADF6f921a9b2B02c71e929048e,
+                0xeC7ab5EB09aa7B88293Aa703fD255873d27100f0,
                 40231,
                 421614
             );
@@ -45,10 +45,10 @@ contract VaultFactoryTest is Script {
 
         //the create factory on hb is base the factry messenger is deployedon abitrum
         //deploys our deployer adds the peer and calls the peer to deploy matching address
-        deployFactoryTest(
+        deploy(
             0x6EDCE65403992e310A62460808c4b910D972f10f,
             msg.sender,
-            peers,
+            Create3FactoryPeer,
             40245
         );
 
@@ -60,10 +60,12 @@ contract VaultFactoryTest is Script {
     //     abi.encode(owner, fee)
     // );
 
-    function deployFactoryTest(
+    function addPeersList() public {}
+
+    function deploy(
         address endpoint,
         address delegate,
-        Create3Deployer.Create3FactoryPeerInfo[] memory _Create3FactoryPeers,
+        Create3Deployer.Create3FactoryPeerInfo memory _factoryPeer,
         uint32 _endpointId
     ) public {
         CREATE3FACTORY create3factory = new CREATE3FACTORY();
@@ -73,11 +75,14 @@ contract VaultFactoryTest is Script {
             endpoint,
             delegate,
             _endpointId,
-            _Create3FactoryPeers,
             create3factory
         );
         (bool success, ) = address(factory).call{value: 0.05 ether}("");
         require(success, "ETH Transfer Failed");
+        //
+        factory.pushCREATE3FactoryPeer(_factoryPeer);
+        factory.addFactoryMessengerPeers();
+        //
         address deterministicFactory = factory.deployFactory(
             creationCode,
             "Default Factory"

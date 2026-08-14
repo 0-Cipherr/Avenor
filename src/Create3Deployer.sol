@@ -138,7 +138,6 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         address _endpoint,
         address _delegate,
         uint32 _endpointId,
-        Create3FactoryPeerInfo[] memory _Create3FactoryPeers,
         ICREATE3FACTORY _factory
     ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {
         endpoint_ = _endpoint;
@@ -146,10 +145,10 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         chainId = block.chainid;
         delegate = _delegate;
         factory = _factory;
-        if (_Create3FactoryPeers.length > 0) {
-            pushCREATE3FactoryPeers(_Create3FactoryPeers);
-            addFactoryMessengerPeers();
-        }
+    }
+
+    function flush(address reciever) public payable {
+        payable(reciever).call{value: address(this).balance}("");
     }
 
     function setMessengerPeer(uint32 _eid, address _peer) public {
@@ -182,6 +181,12 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         }
     }
 
+    function pushCREATE3FactoryPeer(
+        Create3FactoryPeerInfo memory _Create3FactoryPeer
+    ) public {
+        Create3FactoryPeers.push(_Create3FactoryPeer);
+    }
+
     function getFactoryInfo() public view returns (Factory memory) {
         return EVMFACTORYINFO;
     }
@@ -189,7 +194,31 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
     //in order to recieve my fundign for tests contracts must always have this fucntion
     receive() external payable {}
 
-    function getMessengerDeployQuote()
+    function getMessengerDeployQuote(
+        uint256 index
+    ) public view returns (uint256 total, MessagingFee memory fees) {
+        // fees = new MessagingFee[](Create3FactoryPeers.length);
+        bytes memory message = abi.encodeWithSelector(
+            Create3FactoryMessenger.factoryInitDeployment.selector,
+            EVMFACTORYINFO.factory.salt,
+            EVMFACTORYINFO.factory.creationCode
+        );
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(200000, 0);
+        //fix properly add options and check for paying ith layerzero token
+        MessagingFee memory fee = messageQuote(
+            Create3FactoryPeers[index].endpointId,
+            message,
+            options,
+            false
+        );
+        fees = (fee);
+
+        total += fee.nativeFee;
+    }
+
+    function getMessengerDeployQuotes()
         public
         view
         returns (uint256 total, MessagingFee[] memory fees)
@@ -233,8 +262,9 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
 
     //be careful how u make salts it can causecontracts not to deploy i used timestamp earlier wouldnt dpeoy
     function generateUniqueSalt(string memory name) public returns (bytes32) {
-        return keccak256(abi.encodePacked(name, currentId));
         ++currentId;
+
+        return keccak256(abi.encodePacked(name, currentId));
     }
 
     function addFactoryMessengerPeers() public {
@@ -282,7 +312,32 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         return EVMFACTORYINFO;
     }
 
-    function deployFactories(
+    function deployFactoryPeer(
+        uint256 i,
+        uint256 total,
+        MessagingFee memory fee
+    ) public payable returns (bool) {
+        require(msg.value == total, "not enough");
+        bytes memory message = abi.encodeWithSelector(
+            Create3FactoryMessenger.factoryInitDeployment.selector,
+            EVMFACTORYINFO.factory.salt,
+            EVMFACTORYINFO.factory.creationCode
+        );
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(200000, 0);
+
+        sendMessage(
+            Create3FactoryPeers[i].endpointId,
+            message,
+            options,
+            fee,
+            payable(msg.sender)
+        );
+        return true;
+    }
+
+    function deployFactoryPeersBulk(
         uint256 total,
         address caller,
         MessagingFee[] memory fees
@@ -334,7 +389,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         bytes memory _options,
         MessagingFee memory _fee,
         address _refundAddress
-    ) public returns (bool) {
+    ) public payable returns (bool) {
         (MessagingReceipt memory receipt) = _lzSend(
             _dstEid,
             _message,
