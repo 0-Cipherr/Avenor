@@ -28,7 +28,7 @@ forge script script/CreateDeployerFinal.s.sol --rpc-url https://base-sepolia.gat
 factory messenger deployment logs:
 == Logs ==
   Deployed Messenger Address:
-  0x70422a8E08Fb951173552201a565AEC260d690B6
+  0x9F17fa841bAF641bfE4F969A20f5dff30890CBCE
   Endpoint Deployed at:
   0x6EDCE65403992e310A62460808c4b910D972f10f
   Endpoint id Deployed at:
@@ -38,22 +38,27 @@ factory messenger deployment logs:
 
 ## Setting up 1 EVM.
 
+
+
 .
 
 
 == Logs ==
   Deployed deployer addr:
-  0xFF0ed71d5771DCC99351c84967c302A907ECd1e4
+  0x9062B83ccC52faa9eb74a4d72Be68923323D9c39
   Determistic create 3 deployed:
-  0x466789284A15Bc65e1b2AbEf8Ba018372b66121d
+  0x649c73116b3df1a9B1406421D82540F9b53C6c49
   Deployed Factory Address:
-  0x466789284A15Bc65e1b2AbEf8Ba018372b66121d
+  0x649c73116b3df1a9B1406421D82540F9b53C6c49
   SALT:
   0x00ec7745f44a3a8f867e60a3c6bedc9be63ba7456732a7189419a4380b870389
   Initial create3Factory Address:
-  0xE54f34d0ACA44158B863b68D46450f657bd90D9F
+  0x6690dB1c8Dd95A7e994f9d19ab5d33619B908c8D
 
 ## Setting up 1 EVM.
+
+
+
 
 
 
@@ -75,16 +80,16 @@ contract CreateDeployerFinal is Script {
         // STEP 1:
         // setMessenger(
         //     Create3FactoryMessenger(
-        //         payable(0x70422a8E08Fb951173552201a565AEC260d690B6)
+        //         payable(0x9F17fa841bAF641bfE4F969A20f5dff30890CBCE)
         //     )
         // );
 
-        // setMessengerPeer(40245, 0xFF0ed71d5771DCC99351c84967c302A907ECd1e4);
+        // setMessengerPeer(40245, 0x9062B83ccC52faa9eb74a4d72Be68923323D9c39);
         // messenger.flush(msg.sender);
         //STEP 2:
 
         setDeployer(
-            Create3Deployer(payable(0xFF0ed71d5771DCC99351c84967c302A907ECd1e4))
+            Create3Deployer(payable(0x9062B83ccC52faa9eb74a4d72Be68923323D9c39))
         );
         // Create3Deployer.Create3FactoryPeerInfo memory info = getPeer(0);
         // console.log("=== Create3FactoryPeerInfo ===");
@@ -104,7 +109,7 @@ contract CreateDeployerFinal is Script {
         // console.log("==============================");
         // deployer.flush(msg.sender); // use in step3 too
 
-        // setDeployerPeer(40231, 0x70422a8E08Fb951173552201a565AEC260d690B6);
+        setDeployerPeer(40231, 0x9F17fa841bAF641bfE4F969A20f5dff30890CBCE);
 
         //STEP 3:
         /**gets quote and deplyos factory iwth same address n another chain  */

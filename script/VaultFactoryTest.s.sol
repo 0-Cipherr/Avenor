@@ -35,7 +35,7 @@ contract VaultFactoryTest is Script {
         Create3Deployer.Create3FactoryPeerInfo
             memory Create3FactoryPeer = Create3Deployer.Create3FactoryPeerInfo(
                 0x6EDCE65403992e310A62460808c4b910D972f10f,
-                0x70422a8E08Fb951173552201a565AEC260d690B6,
+                0x9F17fa841bAF641bfE4F969A20f5dff30890CBCE,
                 40231,
                 421614
             );
