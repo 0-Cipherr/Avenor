@@ -31,13 +31,18 @@ contract VaultFactoryTest is Script {
             memory peers = new Create3Deployer.Create3FactoryPeerInfo[](1);
 
         //create the necessary struct with information about the messenger we deployed on arbitrum
+        address[] memory dvn = new address[](2);
+        dvn[0] = 0x53f488E93b4f1b60E8E83aa374dBe1780A1EE8a8;
+        dvn[1] = 0x5C8C267174e1F345234FF5315D6cfd6716763BaC;
 
         Create3Deployer.Create3FactoryPeerInfo
             memory Create3FactoryPeer = Create3Deployer.Create3FactoryPeerInfo(
                 0x6EDCE65403992e310A62460808c4b910D972f10f,
-                0x07d006CE8D56312C45f490Ad3b1bA588E8995210,
+                0xeFFd6b30FEEc50BE78d325fFd0C6A8D6048Db450,
                 40231,
-                421614
+                421614,
+                0x75Db67CDab2824970131D5aa9CECfC9F69c69636, //ReceiveUln302 address in dpeloyed endpoitns for arb sepolia
+                dvn //read and sender dvs for arb sepolia
             );
 
         //add it to the peers array to pass into our custom deployer

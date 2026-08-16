@@ -87,7 +87,18 @@ contract CreateDeployerFinal is Script {
             )
         );
 
-        setMessengerPeer(40245, 0xb877c142c4213a78413fcE09279A107379aacC8e);
+        address[] memory dvn = new address[](2);
+        dvn[0] = 0xbf6FF58f60606EdB2F190769B951D825BCb214E2;
+        dvn[1] = 0xe1a12515F9AB2764b887bF60B923Ca494EBbB2d6;
+
+        setMessengerPeer(
+            40245,
+            0xb877c142c4213a78413fcE09279A107379aacC8e,
+            0x12523de19dc41c91F7d2093E0CFbB76b17012C8d,
+            uint32(0), //default grace 0
+            dvn,
+            uint64(15) //default confirmations 15
+        );
         // messenger.flush(msg.sender);
         //STEP 2:
 
@@ -111,8 +122,19 @@ contract CreateDeployerFinal is Script {
 
         // console.log("==============================");
         // // deployer.flush(msg.sender); // use in step3 too
+        // address[] memory deployerdvn = new address[](2);
+        // deployerdvn[0] = 0xbf6FF58f60606EdB2F190769B951D825BCb214E2;
+        // deployerdvn[1] = 0xe1a12515F9AB2764b887bF60B923Ca494EBbB2d6;
 
-        // setDeployerPeer(40231, 0xF85B22D516871f8fB8ea042C6A4DB92C429B43E9);
+        // setDeployerPeer(
+        //     40231,
+        //     0xbf6FF58f60606EdB2F190769B951D825BCb214E2, //change this on deployment
+        //     0,
+        //     0x75Db67CDab2824970131D5aa9CECfC9F69c69636,
+        //     uint32(0),
+        //     deployerdvn,
+        //     uint64(15)
+        // );
 
         //STEP 3:
         /**gets quote and deplyos factory iwth same address n another chain  */
@@ -176,11 +198,40 @@ contract CreateDeployerFinal is Script {
         messenger = _messenger;
     }
 
-    function setMessengerPeer(uint32 _eid, address _peer) public {
-        messenger.setMessengerPeer(_eid, _peer);
+    function setMessengerPeer(
+        uint32 _eid,
+        address _peer,
+        address _receiveLib,
+        uint32 _gracePeriod,
+        address[] memory _requiredDVNs, //purpose: who do you trust to tell you a message is real?
+        uint64 _confirmations //purpose: how sure do you need to be that the source chain won't reorg) public {) public {
+    ) public {
+        messenger.setMessengerPeer(
+            _eid,
+            _peer,
+            _receiveLib,
+            _gracePeriod,
+            _requiredDVNs,
+            _confirmations
+        );
     }
-    function setDeployerPeer(uint32 _eid, address _peer) public {
-        deployer.setMessengerPeer(_eid, _peer);
+    function setDeployerPeer(
+        uint32 _eid,
+        address _peer,
+        uint256 index,
+        address _receiveLib,
+        uint32 _gracePeriod,
+        address[] memory _requiredDVNs, //purpose: who do you trust to tell you a message is real?
+        uint64 _confirmations //purpose: how sure do you need to be that the source chain won't reorg) public {) public {
+    ) public {
+        deployer.setMessengerPeer(
+            _eid,
+            _peer,
+            index,
+            _receiveLib,
+            _requiredDVNs,
+            _confirmations
+        );
     }
     function getDeployFactoriesQuote()
         public

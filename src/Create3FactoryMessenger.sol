@@ -127,7 +127,6 @@ The result, ulnConfig, is just a blob of bytes — meaningless on its own until 
     function setMessengerPeer(
         uint32 _eid,
         address _peer,
-        uint32 _srcEid,
         address _receiveLib,
         uint32 _gracePeriod,
         address[] memory _requiredDVNs, //purpose: who do you trust to tell you a message is real?
@@ -135,8 +134,8 @@ The result, ulnConfig, is just a blob of bytes — meaningless on its own until 
     ) public {
         bytes32 convertedPeerAddr = addressToBytes(_peer);
         _setPeer(_eid, convertedPeerAddr);
-        setReceiveConfig(_srcEid, _receiveLib, _gracePeriod);
-        setUlnConfig(_srcEid, _receiveLib, _requiredDVNs, _confirmations);
+        setReceiveConfig(_eid, _receiveLib, _gracePeriod);
+        setUlnConfig(_eid, _receiveLib, _requiredDVNs, _confirmations);
     }
 
     function addressToBytes(address _addr) public pure returns (bytes32) {
