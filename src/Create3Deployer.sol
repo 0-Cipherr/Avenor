@@ -35,6 +35,13 @@ import {
     MessagingFee
 } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {ICREATE3FACTORY} from "../src/ICREATE3FACTORY.sol";
+import {
+    ILayerZeroEndpointV2
+} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {
+    IMessageLibManager,
+    SetConfigParam
+} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 //vault factory maybe on another file
 contract Create3Deployer is OAppRead, OAppOptionsType3 {
     using OptionsBuilder for bytes;
@@ -42,6 +49,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
     using VaultHelper for address;
     using VaultHelper for bytes32;
     ICREATE3FACTORY factory;
+
     /**
      * KEY TAKEAWAY:
      * This Create3Deployer factory is only deployed nce the Factory Messenger facilitates
@@ -105,9 +113,12 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         address messengerAddr;
         uint32 endpointId;
         uint256 chainId;
+        address _receiveLib;
+        address[] _requiredDVNs;
     }
 
     address endpoint_;
+    ILayerZeroEndpointV2 interfacedEndpoint_;
     uint32 endpointId;
     uint256 chainId;
     address delegate;
@@ -134,7 +145,6 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
      * after this users can deploy vaults how they want on what chians they want
      *
      */
-
     constructor(
         address _endpoint,
         address _delegate,
@@ -146,15 +156,124 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         chainId = block.chainid;
         delegate = _delegate;
         factory = _factory;
+        interfacedEndpoint_ = ILayerZeroEndpointV2(_endpoint);
+    }
+    // ### Key Parameters
+    // * **`oapp`**: The address of your deployed OApp contract.
+    // * **`srcEid`**: The [Endpoint ID (EID)](https://docs.layerzero.network/v2/deployments/deployed-contracts) of the source blockchain network.
+    // * **`receiveLib`**: The address of the incoming message library (such as `ReceiveUln302`).
+    // * **`gracePeriod`**: The time or block number to wait before updating versions, or `0` for an immediate switch.
+
+    function setReceiveLibrary(
+        uint32 _srcEid,
+        address _receiveLib,
+        uint32 _gracePeriod
+    ) public onlyOwner {
+        interfacedEndpoint_.setReceiveLibrary(
+            address(this), //contrat recieving the messages which is this
+            _srcEid, //source endpooint id , endpoint id where messages are coming from for ex: form base
+            _receiveLib, // this is the ReceiveUln302 located in layer zero dpeloyed endpoints page they give it to us
+            _gracePeriod /**	If you're switching away from an old library, this is how long (in blocks) the old library 
+            keeps working before being disabled */
+        );
+    }
+
+    /**
+         * _confirmations — the block-confirmation wait you already understand.
+uint8(_requiredDVNs.length) — this isn't a separate input, it's derived from the array you're passing. The library needs to know upfront how many required DVNs to expect before it reads the array itself; you can't just hand it the array and let it infer the count, the struct format has count and content as separate fields.
+uint8(0), uint8(0) — optionalDVNCount and optionalDVNT/l./hreshold, hardcoded to zero because your wrapper function doesn't support optional DVNs at all (no parameter for them exists). This is a simplification you baked in — if you later want optional DVN support, you'd need to add parameters for it here instead of hardcoding zero.
+_requiredDVNs — the actual array of addresses, the meat of the config.
+new address[](0) — an empty array standing in for "optional DVNs," matching the optionalDVNCount: 0 above (count and array need to agree, or the library's decode step would be inconsistent).
+
+The result, ulnConfig, is just a blob of bytes — meaningless on its own until the receiving library decodes it back into a struct using the same field order.
+         */
+    function setUlnConfig(
+        uint32 _srcEid, //where messages are coming from endpoint id
+        address _receiveLib, //ReceiveUln302 address for this chain u can find on layer zero deployed endpoints
+        address[] memory _requiredDVNs, //purpose: who do you trust to tell you a message is real?
+        uint64 _confirmations //purpose: how sure do you need to be that the source chain won't reorg?
+    ) public onlyOwner {
+        /**
+                 * _confirmations — the block-confirmation wait you already understand.
+        uint8(_requiredDVNs.length) — this isn't a separate input, it's derived from the array you're passing. The library needs to know upfront how many required DVNs to expect before it reads the array itself; you can't just hand it the array and let it infer the count, the struct format has count and content as separate fields.
+        uint8(0), uint8(0) — optionalDVNCount and optionalDVNT/l./hreshold, hardcoded to zero because your wrapper function doesn't support optional DVNs at all (no parameter for them exists). This is a simplification you baked in — if you later want optional DVN support, you'd need to add parameters for it here instead of hardcoding zero.
+        _requiredDVNs — the actual array of addresses, the meat of the config.
+        new address[](0) — an empty array standing in for "optional DVNs," matching the optionalDVNCount: 0 above (count and array need to agree, or the library's decode step would be inconsistent).
+
+        The result, ulnConfig, is just a blob of bytes — meaningless on its own until the receiving library decodes it back into a struct using the same field order.
+            
+
+            ulnconfig values: 
+            struct UlnConfig {
+            uint64 confirmations; //15 should be default 
+            uint8 requiredDVNCount; //elength of required dvns
+            uint8 optionalDVNCount; //optional dvns should be zero empt arrray if optional
+            uint8 optionalDVNThreshold;
+            address[] requiredDVNs;//u find on layer zero dvn deployed page (use default layer zero one )
+            address[] optionalDVNs;//huould be empty no optional dvn
+        }
+            
+                */
+
+        bytes memory ulnConfig = abi.encode(
+            _confirmations, //should be 15 by deaultss
+            uint8(_requiredDVNs.length), //how many required dvns we are passing in
+            uint8(0),
+            uint8(0),
+            _requiredDVNs,
+            new address[](0)
+        );
+
+        SetConfigParam[] memory params = new SetConfigParam[](1);
+        params[0] = SetConfigParam(_srcEid, 2, ulnConfig);
+
+        interfacedEndpoint_.setConfig(address(this), _receiveLib, params);
+    }
+
+    function addFactoryMessengerPeers() public {
+        for (uint256 i = 0; i < Create3FactoryPeers.length; i++) {
+            Create3FactoryPeerInfo
+                memory currentMessenger = Create3FactoryPeers[i];
+            bytes32 messengerAddr = VaultHelper.addrToBytes32(
+                currentMessenger.messengerAddr
+            );
+            _setPeer(currentMessenger.endpointId, messengerAddr);
+            setReceiveLibrary(
+                currentMessenger.endpointId,
+                currentMessenger._receiveLib,
+                uint32(0)
+            );
+            setUlnConfig(
+                currentMessenger.endpointId,
+                currentMessenger._receiveLib,
+                currentMessenger._requiredDVNs, //fix list of trusted message verifiers its on dvn page layer zero
+                uint64(15) //fix 15 by deafault
+            );
+        }
     }
 
     function flush(address reciever) public payable {
         payable(reciever).call{value: address(this).balance}("");
     }
 
-    function setMessengerPeer(uint32 _eid, address _peer) public {
+    function setMessengerPeer(
+        uint32 _eid,
+        address _peer,
+        uint32 _srcEid,
+        uint256 index,
+        address _receiveLib,
+        address[] memory _requiredDVNs, //purpose: who do you trust to tell you a message is real?
+        uint64 _confirmations //purpose: how sure do you need to be that the source chain won't reorg) public {
+    ) public {
+        uint32 _gracePeriod = 0;
         bytes32 convertedPeerAddr = addressToBytes(_peer);
-        setPeer(_eid, convertedPeerAddr);
+        _setPeer(_eid, convertedPeerAddr);
+        setReceiveLibrary(
+            Create3FactoryPeers[index].endpointId,
+            Create3FactoryPeers[index]._receiveLib,
+            _gracePeriod
+        );
+        setUlnConfig(_srcEid, _receiveLib, _requiredDVNs, _confirmations);
     }
 
     function addressToBytes(address _addr) public pure returns (bytes32) {
@@ -199,39 +318,31 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         uint256 index
     ) public view returns (uint256 total, MessagingFee memory fees) {
         // fees = new MessagingFee[](Create3FactoryPeers.length);
-        bytes memory message = abi.encodeWithSelector(
-            Create3FactoryMessenger.factoryInitDeployment.selector,
+        bytes memory message = abi.encodeWithSignature(
+            "factoryInitDeployment(bytes32,bytes)",
             EVMFACTORYINFO.factory.salt,
             EVMFACTORYINFO.factory.creationCode
         );
-        // 1. Dynamic generation stays in memory
-        bytes memory options = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReceiveOption(200_000, 0);
-
-        // 2. Safe Assembly Pointer Overriding (Memory -> Calldata pointer mapping)
-        bytes calldata optionsCalldata;
-        assembly {
-            optionsCalldata.length := mload(options)
-            optionsCalldata.offset := add(options, 0x20)
-        }
-
-        // 3. Pass the casted pointer to combineOptions (Resolves Error 9553)
-        bytes memory combinedOptions = this._combineOptionsWrapped(
-            Create3FactoryPeers[index].endpointId,
-            SEND,
-            optionsCalldata
-        );
+        bytes memory options = buildOptions();
         //fix properly add options and check for paying ith layerzero token
         MessagingFee memory fee = messageQuote(
             Create3FactoryPeers[index].endpointId,
             message,
-            combinedOptions,
+            options,
             false
         );
         fees = (fee);
 
         total += fee.nativeFee;
+    }
+
+    function buildOptions() public pure returns (bytes memory) {
+        return
+            //gas limit should be reaosnable1500000ether
+            OptionsBuilder.newOptions().addExecutorLzReceiveOption(
+                1_900_000,
+                0
+            );
     }
 
     function _combineOptions(
@@ -280,21 +391,12 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
 
             // 2. Safe Assembly Pointer Overriding (Memory -> Calldata pointer mapping)
 
-            bytes memory options = OptionsBuilder
-                .newOptions()
-                .addExecutorLzReceiveOption(200_000, 0);
-
-            // 3. Pass the casted pointer to combineOptions (Resolves Error 9553)
-            bytes memory combinedOptions = _combineOptions(
-                currentMessenger.endpointId,
-                SEND,
-                options
-            );
+            bytes memory options = buildOptions();
             //fix properly add options and check for paying ith layerzero token
             MessagingFee memory fee = messageQuote(
                 currentMessenger.endpointId,
                 message,
-                combinedOptions,
+                options,
                 false
             );
             fees[i] = (fee);
@@ -322,25 +424,14 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         return keccak256(abi.encodePacked(name, currentId));
     }
 
-    function addFactoryMessengerPeers() public {
-        for (uint256 i = 0; i < Create3FactoryPeers.length; i++) {
-            Create3FactoryPeerInfo
-                memory currentMessenger = Create3FactoryPeers[i];
-            bytes32 messengerAddr = VaultHelper.addrToBytes32(
-                currentMessenger.messengerAddr
-            );
-            setPeer(currentMessenger.endpointId, messengerAddr);
-        }
-    }
-
     function storeCREATE3Factory(
         bytes32 salt,
         bytes memory creationCode,
-        address factory,
+        address factoryAddr,
         bool isEVM,
         uint256 deployedChain
     ) public {
-        FactoryInfo memory info = FactoryInfo(salt, creationCode, factory);
+        FactoryInfo memory info = FactoryInfo(salt, creationCode, factoryAddr);
         EVMFACTORYINFO.isEVM = isEVM;
         EVMFACTORYINFO.factory = info;
         EVMFACTORYINFO.chains.push(deployedChain);
@@ -363,7 +454,7 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         // Create3FactoryPeerInfo[] memory _Create3FactoryPeers
     }
 
-    function getEVMFACTORYINFO() public returns (Factory memory) {
+    function getEVMFACTORYINFO() public view returns (Factory memory) {
         return EVMFACTORYINFO;
     }
 
@@ -373,26 +464,18 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         MessagingFee memory fee
     ) public payable returns (bool) {
         require(msg.value == total, "not enough");
-        bytes memory message = abi.encodeWithSelector(
-            Create3FactoryMessenger.factoryInitDeployment.selector,
+        bytes memory message = abi.encodeWithSignature(
+            "factoryInitDeployment(bytes32,bytes)",
             EVMFACTORYINFO.factory.salt,
             EVMFACTORYINFO.factory.creationCode
         );
 
-        bytes memory options = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReceiveOption(200_000, 0);
-
         // 3. Pass the casted pointer to combineOptions (Resolves Error 9553)
-        bytes memory combinedOptions = _combineOptions(
-            Create3FactoryPeers[i].endpointId,
-            SEND,
-            options
-        );
+        bytes memory options = buildOptions();
         sendMessage(
             Create3FactoryPeers[i].endpointId,
             message,
-            combinedOptions,
+            options,
             fee,
             payable(msg.sender)
         );
@@ -415,22 +498,13 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
                 EVMFACTORYINFO.factory.creationCode
             );
             // 1. Dynamic generation stays in memory
-            bytes memory options = OptionsBuilder
-                .newOptions()
-                .addExecutorLzReceiveOption(200_000, 0);
-
-            // 3. Pass the casted pointer to combineOptions (Resolves Error 9553)
-            bytes memory combinedOptions = _combineOptions(
-                Create3FactoryPeers[i].endpointId,
-                SEND,
-                options
-            );
+            bytes memory options = buildOptions();
             //fix options bytes("") shoudl be proper options and pay in lz
             //also check fees[] should not conflict verify length and validity or call bulk quoter again
             sendMessage(
                 currentMessenger.endpointId,
                 message,
-                combinedOptions,
+                options,
                 fees[i],
                 caller
             );
