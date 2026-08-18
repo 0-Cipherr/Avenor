@@ -137,8 +137,8 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
         factoryPeers[index].deployed = isDeployed;
     }
 
-    function generateSalt(uint256 _num) public returns (bytes32) {
-        keccak256(abi.encodePacked(msg.sender, uint256(_num)));
+    function generateSalt(uint256 _num) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(msg.sender, uint256(_num)));
     }
     function deployFactoryNative(uint256 _num) public {
         bytes32 salt = generateSalt(_num);
@@ -155,7 +155,7 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
         uint256 index,
         DeployQuote memory quote
     ) public {
-        require(factoryPeers[i].deployed == false, "Deployed already");
+        require(factoryPeers[index].deployed == false, "Deployed already");
         _lzSend(
             quote.dstEid,
             quote.message,
@@ -180,13 +180,13 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
         return options;
     }
 
-    function isPeerDeployed(uint256 index) public returns (bool) {
+    function isPeerDeployed(uint256 index) public view returns (bool) {
         return factoryPeers[index].deployed;
     }
 
     function deployPeerQuote(
         uint256 index
-    ) public returns (DeployQuote memory) {
+    ) public view returns (DeployQuote memory) {
         bytes memory options = getOptions();
         Create3FactoryPeerInfo memory peer = factoryPeers[index];
         bytes memory message = abi.encode(
