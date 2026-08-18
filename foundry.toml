@@ -4,5 +4,6 @@ out = "out"
 libs = ["lib"]
 solc_version = "0.8.20"  # Keep your .19 version or change to .20
 evm_version = "paris"    # 💡 ADD THIS LINE to prevent the error
-
+optimizer = true
+optimizer_runs = 200
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

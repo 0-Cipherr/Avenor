@@ -14,6 +14,9 @@ import {
     AddressCast
 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
 import {
+    UlnConfig
+} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
+import {
     MessagingFee,
     MessagingReceipt
 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
@@ -50,13 +53,22 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
     address public factoryDeterministic;
     ILayerZeroEndpointV2 interfacedEndpoint_;
     address Endpoint;
+    address receiveLib;
+    uint32 gracePeriod;
+    address[] requiredDVNs;
     constructor(
         address _endpoint,
-        address _delegate
+        address _delegate,
+        address _receiveLib,
+        uint32 _gracePeriod,
+        address[] memory _requiredDVNs
     ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {
         factory = new CREATE3FACTORY();
         Endpoint = _endpoint;
         interfacedEndpoint_ = ILayerZeroEndpointV2(_endpoint);
+        receiveLib = _receiveLib;
+        gracePeriod = _gracePeriod;
+        requiredDVNs = _requiredDVNs;
     }
 
     function setReceiveConfig(
@@ -82,6 +94,25 @@ contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
         address[] memory _requiredDVNs, //purpose: who do you trust to tell you a message is real?
         uint64 _confirmations //purpose: how sure do you need to be that the source chain won't reorg?
     ) public onlyOwner {
+        UlnConfig memory config = UlnConfig({
+            confirmations: _confirmations,
+            requiredDVNCount: uint8(_requiredDVNs.length),
+            // Explicitly no optional DVNs
+            optionalDVNCount: type(uint8).max,
+            optionalDVNThreshold: 0,
+            requiredDVNs: _requiredDVNs,
+            optionalDVNs: new address[](0)
+        });
+
+        SetConfigParam[] memory params = new SetConfigParam[](1);
+
+        params[0] = SetConfigParam({
+            eid: _srcEid,
+            configType: 2,
+            config: abi.encode(config)
+        });
+
+        interfacedEndpoint_.setConfig(address(this), _receiveLib, params);
         /**
          * _confirmations — the block-confirmation wait you already understand.
 uint8(_requiredDVNs.length) — this isn't a separate input, it's derived from the array you're passing. The library needs to know upfront how many required DVNs to expect before it reads the array itself; you can't just hand it the array and let it infer the count, the struct format has count and content as separate fields.
@@ -91,23 +122,6 @@ new address[](0) — an empty array standing in for "optional DVNs," matching th
 
 The result, ulnConfig, is just a blob of bytes — meaningless on its own until the receiving library decodes it back into a struct using the same field order.
          */
-        bytes memory ulnConfig = abi.encode(
-            _confirmations,
-            uint8(_requiredDVNs.length), //how many required dvns we are passing in
-            uint8(0),
-            uint8(0),
-            _requiredDVNs,
-            new address[](0)
-        );
-
-        SetConfigParam[] memory params = new SetConfigParam[](1);
-        params[0] = SetConfigParam({
-            eid: _srcEid,
-            configType: 2,
-            config: ulnConfig
-        });
-
-        interfacedEndpoint_.setConfig(address(this), _receiveLib, params);
     }
     receive() external payable {}
     // function messageQuote() public returns (MessagingFee memory) {}
@@ -124,18 +138,11 @@ The result, ulnConfig, is just a blob of bytes — meaningless on its own until 
 
     // function setPeer
 
-    function setMessengerPeer(
-        uint32 _eid,
-        address _peer,
-        address _receiveLib,
-        uint32 _gracePeriod,
-        address[] memory _requiredDVNs, //purpose: who do you trust to tell you a message is real?
-        uint64 _confirmations //purpose: how sure do you need to be that the source chain won't reorg) public {
-    ) public {
+    function setMessengerPeer(uint32 _eid, address _peer) public {
         bytes32 convertedPeerAddr = addressToBytes(_peer);
         _setPeer(_eid, convertedPeerAddr);
-        setReceiveConfig(_eid, _receiveLib, _gracePeriod);
-        setUlnConfig(_eid, _receiveLib, _requiredDVNs, _confirmations);
+        setReceiveConfig(_eid, receiveLib, gracePeriod);
+        setUlnConfig(_eid, receiveLib, requiredDVNs, uint64(15));
     }
 
     function addressToBytes(address _addr) public pure returns (bytes32) {

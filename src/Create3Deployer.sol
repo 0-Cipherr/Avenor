@@ -9,6 +9,9 @@ import "forge-std/console.sol";
 import {Create3FactoryMessenger} from "./Create3FactoryMessenger.sol";
 /////////
 import {
+    UlnConfig
+} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
+import {
     OptionsBuilder
 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
@@ -145,11 +148,17 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
      * after this users can deploy vaults how they want on what chians they want
      *
      */
+    address recieverLib;
+    address[] requiredDVNs;
+    uint32 gracePeriod;
     constructor(
         address _endpoint,
         address _delegate,
         uint32 _endpointId,
-        ICREATE3FACTORY _factory
+        ICREATE3FACTORY _factory,
+        address _recieverLib,
+        uint32 _gracePeriod,
+        address[] memory _requiredDVNs
     ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {
         endpoint_ = _endpoint;
         endpointId = _endpointId;
@@ -157,6 +166,9 @@ contract Create3Deployer is OAppRead, OAppOptionsType3 {
         delegate = _delegate;
         factory = _factory;
         interfacedEndpoint_ = ILayerZeroEndpointV2(_endpoint);
+        recieverLib = _recieverLib;
+        gracePeriod = _gracePeriod;
+        requiredDVNs = _requiredDVNs;
     }
     // ### Key Parameters
     // * **`oapp`**: The address of your deployed OApp contract.
@@ -215,20 +227,52 @@ The result, ulnConfig, is just a blob of bytes — meaningless on its own until 
             
                 */
 
-        bytes memory ulnConfig = abi.encode(
-            _confirmations, //should be 15 by deaultss
-            uint8(_requiredDVNs.length), //how many required dvns we are passing in
-            uint8(0),
-            uint8(0),
-            _requiredDVNs,
-            new address[](0)
-        );
+        UlnConfig memory config = UlnConfig({
+            confirmations: _confirmations,
+            requiredDVNCount: uint8(_requiredDVNs.length),
+            // Explicitly no optional DVNs
+            optionalDVNCount: type(uint8).max,
+            optionalDVNThreshold: 0,
+            requiredDVNs: _requiredDVNs,
+            optionalDVNs: new address[](0)
+        });
 
         SetConfigParam[] memory params = new SetConfigParam[](1);
-        params[0] = SetConfigParam(_srcEid, 2, ulnConfig);
+
+        params[0] = SetConfigParam({
+            eid: _srcEid,
+            configType: 2,
+            config: abi.encode(config)
+        });
 
         interfacedEndpoint_.setConfig(address(this), _receiveLib, params);
     }
+    bool configSetup = false;
+    function addFactoryMessengerPeer(uint256 index) public {
+        Create3FactoryPeerInfo memory currentMessenger = Create3FactoryPeers[
+            index
+        ];
+        bytes32 messengerAddr = VaultHelper.addrToBytes32(
+            currentMessenger.messengerAddr
+        );
+        _setPeer(currentMessenger.endpointId, messengerAddr);
+        if (configSetup == false) {
+            setReceiveLibrary(
+                currentMessenger.endpointId,
+                recieverLib,
+                uint32(0)
+            );
+            setUlnConfig(
+                currentMessenger.endpointId,
+                recieverLib,
+                currentMessenger._requiredDVNs, //fix list of trusted message verifiers its on dvn page layer zero
+                uint64(15) //fix 15 by deafault
+            );
+            configSetup = true;
+        }
+    }
+
+    function setupLzConfigs() public {}
 
     function addFactoryMessengerPeers() public {
         for (uint256 i = 0; i < Create3FactoryPeers.length; i++) {
@@ -238,17 +282,20 @@ The result, ulnConfig, is just a blob of bytes — meaningless on its own until 
                 currentMessenger.messengerAddr
             );
             _setPeer(currentMessenger.endpointId, messengerAddr);
-            setReceiveLibrary(
-                currentMessenger.endpointId,
-                currentMessenger._receiveLib,
-                uint32(0)
-            );
-            setUlnConfig(
-                currentMessenger.endpointId,
-                currentMessenger._receiveLib,
-                currentMessenger._requiredDVNs, //fix list of trusted message verifiers its on dvn page layer zero
-                uint64(15) //fix 15 by deafault
-            );
+            if (configSetup == false) {
+                setReceiveLibrary(
+                    currentMessenger.endpointId,
+                    recieverLib,
+                    uint32(0)
+                );
+                setUlnConfig(
+                    currentMessenger.endpointId,
+                    recieverLib,
+                    requiredDVNs, //fix list of trusted message verifiers its on dvn page layer zero
+                    uint64(15) //fix 15 by deafault
+                );
+                configSetup = true;
+            }
         }
     }
 
