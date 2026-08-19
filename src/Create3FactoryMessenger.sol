@@ -58,8 +58,8 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         address _delegate,
         address _endpoint
     ) Ownable(_delegate) OApp(_endpoint, _delegate) {}
-    function setFactory(address _factory) public {
-        factory = ICREATE3FACTORY(_factory);
+    function setFactory(ICREATE3FACTORY _factory) public {
+        factory = _factory;
     }
 
     function storeFactoryPeer(uint32 _eid, address _peer) public {
@@ -74,7 +74,7 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         );
 
         (address deployed) = factory.deploy(salt, creationCode);
-        setFactory(deployed);
+        setFactory(ICREATE3FACTORY(deployed));
     }
     function executeMessageType(
         MessageType _type,

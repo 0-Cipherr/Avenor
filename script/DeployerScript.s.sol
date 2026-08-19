@@ -49,55 +49,96 @@ import {Test as factoryDeployer} from "../src/Test.sol";
 /**
  * template format for runing script 
 forge script script/FactoryMesengerScript.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
-/chains with funds sepolia op nd arbitrum
-== Logs ==
-  Deployed Messenger Address:
-  0x6050464021C9F2eB3280Da7A7604beD9823375b6
-  Endpoint Deployed at:
-  0x6EDCE65403992e310A62460808c4b910D972f10f
-  Endpoint id Deployed at:
-  40231
-  Chain Id:
-  421614
- */
+*/
 
-contract FactoryMesengerScript is Script {
+contract DeployerScript is Script {
     CREATE3FACTORY factory;
     factoryDeployer deployer;
 
     ///left off deployinon another chain making sure address is the same
     function run() public {
         vm.startBroadcast();
+        factoryDeployer.Create3FactoryPeerInfo memory peer = getPeer();
+        address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
+        address delegate = msg.sender;
+        uint32 endpointId = 40245;
 
-        bytes memory params = abi.encode();
-        uint256 index = 0;
+        bytes memory params = abi.encode(
+            peer.endpointId,
+            peer.endpoint,
+            endpoint,
+            delegate,
+            endpointId,
+            1
+        );
+        uint256 num = 0;
         initialSetters(params);
         // factoryDeployer.DeployQuote memory quote = getDeployQuote(index);
         // deployPeer(index, quote);
         vm.stopBroadcast();
     }
 
+    function getPeer()
+        public
+        view
+        returns (factoryDeployer.Create3FactoryPeerInfo memory)
+    {
+        //replace values with existing ones
+        return
+            factoryDeployer.Create3FactoryPeerInfo(
+                0x6EDCE65403992e310A62460808c4b910D972f10f,
+                0x39373a4869e6c9dbF4b3dF808b4631E47bC2F869, //messenger addr
+                40231,
+                421614,
+                block.timestamp,
+                false
+            );
+    }
+
     function initialSetters(bytes memory _params) public {
         (
             factoryDeployer.Create3FactoryPeerInfo memory peer,
-            uint32 _eid,
-            address _peer
+            uint32 peerEndpointId,
+            address peerEndpoint,
+            address endpoint,
+            address delegate,
+            uint32 endpointId,
+            uint256 _num
         ) = abi.decode(
                 _params,
-                (factoryDeployer.Create3FactoryPeerInfo, uint32, address)
+                (
+                    factoryDeployer.Create3FactoryPeerInfo,
+                    uint32,
+                    address,
+                    address,
+                    address,
+                    uint32,
+                    uint256
+                )
             );
-        deployer.storePeer(_eid, _peer);
+        deployer = new factoryDeployer(delegate, endpoint, endpointId);
+        deployer.storePeer(peerEndpointId, peerEndpoint);
         deployer.storeCreate3FactoryPeer(peer); //adds the messenger peer
 
-        deployCreate3Factory();
+        console.log("deployed deployer");
+        console.logAddress(address(deployer));
+        console.log("stored peer endpoint:");
+        console.logAddress(peerEndpoint);
+        console.log("Stored endpoint id");
+        console.logUint(peerEndpointId);
     }
 
-    function deployCreate3Factory() public {
+    function deployCrossChain(uint256 _num) public {
+        deployCreate3Factory(_num);
+        console.log("Deploy successful");
+    }
+
+    function deployCreate3Factory(uint256 _num) public {
         CREATE3FACTORY _factory = new CREATE3FACTORY();
         bytes memory creationCode = type(CREATE3FACTORY).creationCode;
         deployer.setNativeFactory(_factory);
         deployer.setFactoryCreationCode(creationCode);
-        deployer.deployDeterministicFactoryNative(1);
+        deployer.deployDeterministicFactoryNative(_num);
     }
 
     function getDeployQuote(

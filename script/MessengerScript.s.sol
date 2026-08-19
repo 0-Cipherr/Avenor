@@ -48,17 +48,18 @@ import {
 import {Test as factoryDeployer} from "../src/Test.sol";
 /**
  * template format for runing script 
-forge script script/FactoryMesengerScript.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
+forge script script/MessengerScript.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
 /chains with funds sepolia op nd arbitrum
 == Logs ==
-  Deployed Messenger Address:
-  0x6050464021C9F2eB3280Da7A7604beD9823375b6
-  Endpoint Deployed at:
-  0x6EDCE65403992e310A62460808c4b910D972f10f
-  Endpoint id Deployed at:
-  40231
-  Chain Id:
-  421614
+== Logs ==
+  Deployed CREATE3FACTORY:
+  0x524975584071152Fbf323B701E34F5fe38B46a72
+  Deployed Messenger:
+  0x39373a4869e6c9dbF4b3dF808b4631E47bC2F869
+
+## Setting up 1 EVM.
+
+
  */
 
 contract MessengerScript is Script {
@@ -68,24 +69,38 @@ contract MessengerScript is Script {
     ///left off deployinon another chain making sure address is the same
     function run() public {
         vm.startBroadcast();
-        bytes memory initialParams = abi.encode();
-        uint32 peerEndpointId;
+        uint32 peerEndpointId = 40245;
         address peerAddress;
+        // address endpoint = address(0x6EDCE65403992e310A62460808c4b910D972f10f);
+        // bytes memory initialParams = abi.encode(endpoint);
 
-        initialSetters(initialParams);
+        // initialSetters(initialParams);
 
-        // addPeer(peerEndpointId, peerAddress);
+        // console.log("Endpoint deployed on:");
+        // console.logAddress(endpoint);
+        // console.log("Endpoint id:");
+
+        messenger = Create3FactoryMessenger(
+            0x39373a4869e6c9dbF4b3dF808b4631E47bC2F869
+        );
+        addPeer(peerEndpointId, peerAddress);
         vm.stopBroadcast();
     }
 
     function initialSetters(bytes memory _params) public {
-        (address _endpoint, address _delegate) = abi.decode(
-            _params,
-            (address, address)
-        );
-        messenger = new Create3FactoryMessenger(_endpoint, _delegate);
+        (address _endpoint) = abi.decode(_params, (address));
+        messenger = new Create3FactoryMessenger(msg.sender, _endpoint);
+        deployCreate3Factory();
+        console.log("Deployed Messenger:");
+        console.logAddress(address(messenger));
     }
 
+    function deployCreate3Factory() public {
+        CREATE3FACTORY _factory = new CREATE3FACTORY();
+        messenger.setFactory(_factory);
+        console.log("Deployed CREATE3FACTORY:");
+        console.logAddress(address(_factory));
+    }
     function addPeer(uint32 _eid, address _peer) public {
         messenger.storeFactoryPeer(_eid, _peer);
     }
