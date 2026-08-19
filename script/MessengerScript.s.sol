@@ -61,61 +61,32 @@ forge script script/FactoryMesengerScript.s.sol --rpc-url wss://arbitrum-sepolia
   421614
  */
 
-contract FactoryMesengerScript is Script {
+contract MessengerScript is Script {
     CREATE3FACTORY factory;
-    factoryDeployer deployer;
+    Create3FactoryMessenger messenger;
 
     ///left off deployinon another chain making sure address is the same
     function run() public {
         vm.startBroadcast();
+        bytes memory initialParams = abi.encode();
+        uint32 peerEndpointId;
+        address peerAddress;
 
+        initialSetters(initialParams);
+
+        // addPeer(peerEndpointId, peerAddress);
         vm.stopBroadcast();
     }
 
     function initialSetters(bytes memory _params) public {
-        (
-            factoryDeployer.Create3FactoryPeerInfo memory peer,
-            uint32 _eid,
-            address _peer
-        ) = abi.decode(
-                _params,
-                (factoryDeployer.Create3FactoryPeerInfo, uint32, address)
-            );
-        deployer.storePeer(_eid, _peer);
-        deployer.storeCreate3FactoryPeer(peer); //adds the messenger peer
-
-        uint256 index = 0;
-        // factoryDeployer.DeployQuote memory quote = getDeployQuote(index);
-        // deployPeer(index, quote);
-
-        deployCreate3Factory();
-    }
-
-    function deployCreate3Factory() public {
-        CREATE3FACTORY _factory = new CREATE3FACTORY();
-        bytes memory creationCode = type(CREATE3FACTORY).creationCode;
-        deployer.setNativeFactory(_factory);
-        deployer.setFactoryCreationCode(creationCode);
-        deployer.deployDeterministicFactoryNative(1);
-    }
-
-    function getDeployQuote(
-        uint256 index
-    ) public view returns (factoryDeployer.DeployQuote memory) {
-        factoryDeployer.DeployQuote memory quote = deployer.deployPeerQuote(
-            index
+        (address _endpoint, address _delegate) = abi.decode(
+            _params,
+            (address, address)
         );
-
-        return quote;
+        messenger = new Create3FactoryMessenger(_endpoint, _delegate);
     }
 
-    function deployPeer(
-        uint256 index,
-        factoryDeployer.DeployQuote memory quote
-    ) public payable {
-        deployer.deployFactoryCrossChain{value: quote.fee.nativeFee}(
-            index,
-            quote
-        );
+    function addPeer(uint32 _eid, address _peer) public {
+        messenger.storeFactoryPeer(_eid, _peer);
     }
 }

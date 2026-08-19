@@ -109,14 +109,18 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
     function setFactoryCreationCode(bytes memory _creationCode) public {
         factory.creationCode = _creationCode;
     }
+    function deployDeterministicFactoryNative(uint256 _num) public {
+        bytes32 salt = generateSalt(_num);
+        (address deployed) = factory.factoryDeployed.deploy(
+            salt,
+            factory.creationCode
+        );
 
+        setFactoryDeterministicFactory(deployed);
+        storeFactorySalt(salt);
+    }
     function storeFactorySalt(bytes32 _salt) public {
         factory.salt = _salt;
-    }
-    function setFactoryDeterministicFactory(
-        address _deterministicFactory
-    ) public {
-        factory.deterministicFactory = ICREATE3FACTORY(_deterministicFactory);
     }
 
     function setCreate3Factory(
@@ -133,6 +137,12 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
         );
     }
 
+    function setFactoryDeterministicFactory(
+        address _deterministicFactory
+    ) public {
+        factory.deterministicFactory = ICREATE3FACTORY(_deterministicFactory);
+    }
+
     function setFactoryIsDeplyoed(uint256 index, bool isDeployed) public {
         factoryPeers[index].deployed = isDeployed;
     }
@@ -140,21 +150,11 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
     function generateSalt(uint256 _num) public view returns (bytes32) {
         return keccak256(abi.encodePacked(msg.sender, uint256(_num)));
     }
-    function deployFactoryNative(uint256 _num) public {
-        bytes32 salt = generateSalt(_num);
-        (address deployed) = factory.factoryDeployed.deploy(
-            salt,
-            factory.creationCode
-        );
-
-        setFactoryDeterministicFactory(deployed);
-        storeFactorySalt(salt);
-    }
 
     function deployFactoryCrossChain(
         uint256 index,
         DeployQuote memory quote
-    ) public {
+    ) public payable {
         require(factoryPeers[index].deployed == false, "Deployed already");
         _lzSend(
             quote.dstEid,
@@ -164,6 +164,11 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
             quote.refundAddress
         );
         setFactoryIsDeplyoed(index, true);
+    }
+
+    function storePeer(uint32 _eid, address _peer) public {
+        bytes32 addr = VaultHelper.addrToBytes32(_peer);
+        setPeer(_eid, addr);
     }
 
     function storeCreate3FactoryPeer(

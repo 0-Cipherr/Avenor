@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {Script} from "forge-std/Script.sol";
-import {console} from "forge-std/console.sol";
 import {CREATE3FACTORY} from "../src/CREATE3FACTORY.sol";
 import {ICREATE3FACTORY} from "../src/ICREATE3FACTORY.sol";
-
-import "forge-std/console.sol";
 
 //// @title A title that should describe the contract/interface
 
@@ -35,6 +31,7 @@ import {
     Origin,
     MessagingFee
 } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {VaultHelper} from "../src/VaultHelper.sol";
 
 import {
     ILayerZeroEndpointV2
@@ -48,127 +45,50 @@ import {
  * deployed on all chains and called from hubwhen we deploy vaults on multiple chains makes deployment easier
  * same address for all vaults accross evm makes things easier
  */
-contract Create3FactoryMessenger is OAppRead, OAppOptionsType3 {
-    CREATE3FACTORY public factory; //factory deployed with deterministic addr
+contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
+    ICREATE3FACTORY public factory; //factory deployed with deterministic addr
+
     address public factoryDeterministic;
-    ILayerZeroEndpointV2 interfacedEndpoint_;
-    address Endpoint;
-    address receiveLib;
-    uint32 gracePeriod;
-    address[] requiredDVNs;
+
+    enum MessageType {
+        DeployFactoryDeterministic
+    }
+
     constructor(
-        address _endpoint,
         address _delegate,
-        address _receiveLib,
-        uint32 _gracePeriod,
-        address[] memory _requiredDVNs
-    ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {
-        factory = new CREATE3FACTORY();
-        Endpoint = _endpoint;
-        interfacedEndpoint_ = ILayerZeroEndpointV2(_endpoint);
-        receiveLib = _receiveLib;
-        gracePeriod = _gracePeriod;
-        requiredDVNs = _requiredDVNs;
+        address _endpoint
+    ) Ownable(_delegate) OApp(_endpoint, _delegate) {}
+    function setFactory(address _factory) public {
+        factory = ICREATE3FACTORY(_factory);
     }
 
-    function setReceiveConfig(
-        uint32 _srcEid,
-        address _receiveLib,
-        uint32 _gracePeriod
-    ) public onlyOwner {
-        interfacedEndpoint_.setReceiveLibrary(
-            address(this), //contrat recieving the messages which is this
-            _srcEid, //source endpooint id , endpoint id where messages are coming from for ex: form base
-            _receiveLib, // this is the ReceiveUln302 located in layer zero dpeloyed endpoints page they give it to us
-            _gracePeriod /**	If you're switching away from an old library, this is how long (in blocks) the old library 
-            keeps working before being disabled */
+    function storeFactoryPeer(uint32 _eid, address _peer) public {
+        bytes32 peer = VaultHelper.addrToBytes32(_peer);
+        setPeer(_eid, peer);
+    }
+
+    function deployDeterministicFactory(bytes memory _params) public {
+        (bytes32 salt, bytes memory creationCode) = abi.decode(
+            _params,
+            (bytes32, bytes)
         );
-    }
 
-    function setUlnConfig(
-        uint32 _srcEid, //where messages are coming from endpoint id
-        address _receiveLib, //ReceiveUln302 address for this chain u can find on layer zero deployed endpoints
-        /**e get equired dvns from dvn deployed website layer zero choose layer zero labs dvn there are
-         * multiple options u can choose whichever but make sure its available on the other chians
-         */
-        address[] memory _requiredDVNs, //purpose: who do you trust to tell you a message is real?
-        uint64 _confirmations //purpose: how sure do you need to be that the source chain won't reorg?
-    ) public onlyOwner {
-        UlnConfig memory config = UlnConfig({
-            confirmations: _confirmations,
-            requiredDVNCount: uint8(_requiredDVNs.length),
-            // Explicitly no optional DVNs
-            optionalDVNCount: type(uint8).max,
-            optionalDVNThreshold: 0,
-            requiredDVNs: _requiredDVNs,
-            optionalDVNs: new address[](0)
-        });
-
-        SetConfigParam[] memory params = new SetConfigParam[](1);
-
-        params[0] = SetConfigParam({
-            eid: _srcEid,
-            configType: 2,
-            config: abi.encode(config)
-        });
-
-        interfacedEndpoint_.setConfig(address(this), _receiveLib, params);
-        /**
-         * _confirmations — the block-confirmation wait you already understand.
-uint8(_requiredDVNs.length) — this isn't a separate input, it's derived from the array you're passing. The library needs to know upfront how many required DVNs to expect before it reads the array itself; you can't just hand it the array and let it infer the count, the struct format has count and content as separate fields.
-uint8(0), uint8(0) — optionalDVNCount and optionalDVNT/l./hreshold, hardcoded to zero because your wrapper function doesn't support optional DVNs at all (no parameter for them exists). This is a simplification you baked in — if you later want optional DVN support, you'd need to add parameters for it here instead of hardcoding zero.
-_requiredDVNs — the actual array of addresses, the meat of the config.
-new address[](0) — an empty array standing in for "optional DVNs," matching the optionalDVNCount: 0 above (count and array need to agree, or the library's decode step would be inconsistent).
-
-The result, ulnConfig, is just a blob of bytes — meaningless on its own until the receiving library decodes it back into a struct using the same field order.
-         */
-    }
-    receive() external payable {}
-    // function messageQuote() public returns (MessagingFee memory) {}
-
-    function sendessage() public {}
-
-    function deploy(
-        bytes32 salt,
-        bytes memory creationCode
-    ) public returns (address) {
         (address deployed) = factory.deploy(salt, creationCode);
-        return deployed;
+        setFactory(deployed);
     }
-
-    // function setPeer
-
-    function setMessengerPeer(uint32 _eid, address _peer) public {
-        bytes32 convertedPeerAddr = addressToBytes(_peer);
-        _setPeer(_eid, convertedPeerAddr);
-        setReceiveConfig(_eid, receiveLib, gracePeriod);
-        setUlnConfig(_eid, receiveLib, requiredDVNs, uint64(15));
+    function executeMessageType(
+        MessageType _type,
+        bytes memory _params
+    ) public {
+        if (_type == MessageType.DeployFactoryDeterministic) {
+            deployDeterministicFactory(_params);
+        }
     }
-
     function addressToBytes(address _addr) public pure returns (bytes32) {
         return bytes32(uint256(uint160(_addr)));
     }
 
-    function factoryInitDeployment(
-        bytes32 salt,
-        bytes memory creationCode
-    ) public {
-        address deployed = deploy(salt, creationCode);
-        setFactory(deployed);
-    }
-
-    function setFactory(address deployed) public {
-        factory = CREATE3FACTORY(deployed);
-        factoryDeterministic = deployed; //we store this so its ez for devs to use
-    }
-
-    function getDeploymentAddress() public view returns (address) {
-        return address(this);
-    }
-
-    function getDeterministicFactory() public view returns (address) {
-        return factoryDeterministic;
-    }
+    function sendMessage() public {}
 
     function _lzReceive(
         Origin calldata /*_origin*/,
@@ -177,8 +97,13 @@ The result, ulnConfig, is just a blob of bytes — meaningless on its own until 
         address /*_executor*/,
         bytes calldata /*_extraData*/
     ) internal override {
-        (bool success, ) = address(this).call(_message);
-        require(success, "Execution failed");
+        (uint8 callType, bytes memory params) = abi.decode(
+            _message,
+            (uint8, bytes)
+        );
+        MessageType messageType = MessageType(callType);
+        executeMessageType(messageType, params);
+        // require(success, "Execution failed");
         // 1. Decode the returned data from bytes to uint256
         // uint256 data = abi.decode(_message, (uint256));
     }
