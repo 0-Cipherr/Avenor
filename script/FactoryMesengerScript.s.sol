@@ -69,6 +69,11 @@ contract FactoryMesengerScript is Script {
     function run() public {
         vm.startBroadcast();
 
+        bytes memory params = abi.encode();
+        uint256 index = 0;
+        initialSetters(params);
+        // factoryDeployer.DeployQuote memory quote = getDeployQuote(index);
+        // deployPeer(index, quote);
         vm.stopBroadcast();
     }
 
@@ -83,10 +88,6 @@ contract FactoryMesengerScript is Script {
             );
         deployer.storePeer(_eid, _peer);
         deployer.storeCreate3FactoryPeer(peer); //adds the messenger peer
-
-        uint256 index = 0;
-        // factoryDeployer.DeployQuote memory quote = getDeployQuote(index);
-        // deployPeer(index, quote);
 
         deployCreate3Factory();
     }
