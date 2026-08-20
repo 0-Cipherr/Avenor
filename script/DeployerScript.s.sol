@@ -48,7 +48,27 @@ import {
 import {Test as factoryDeployer} from "../src/Test.sol";
 /**
  * template format for runing script 
-forge script script/FactoryMesengerScript.s.sol --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
+forge script script/DeployerScript.s.sol --rpc-url wss://base-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
+
+== Logs ==
+
+== Logs ==
+  deployed deployer
+  0x1eEB9c27e93012a01907E7df3Fee5e1C722EeDA8
+  stored peer endpoint:
+  0x6EDCE65403992e310A62460808c4b910D972f10f
+  Stored endpoint id
+  40231
+  Deterministic CREATE3Factory Deployed:
+  0xe728641Ac40A5A15C6155E43C0DC03282893aebb
+
+## Setting up 1 EVM.
+
+
+
+
+
+
 */
 
 contract DeployerScript is Script {
@@ -64,18 +84,28 @@ contract DeployerScript is Script {
         uint32 endpointId = 40245;
 
         bytes memory params = abi.encode(
+            peer,
             peer.endpointId,
             peer.endpoint,
             endpoint,
             delegate,
-            endpointId,
-            1
+            endpointId
         );
         uint256 num = 0;
-        initialSetters(params);
-        // factoryDeployer.DeployQuote memory quote = getDeployQuote(index);
-        // deployPeer(index, quote);
+        // initialSetters(params);
+        // deployCreate3Factory(num);
+        deployer = factoryDeployer(0x1eEB9c27e93012a01907E7df3Fee5e1C722EeDA8);
+        factoryDeployer.DeployQuote memory quote = getDeployQuote(num);
+        deployPeer(num, quote);
+        printQuote(quote);
         vm.stopBroadcast();
+    }
+
+    function printQuote(factoryDeployer.DeployQuote memory quote) public pure {
+        console.log("Fee:");
+        console.logUint(quote.fee.nativeFee);
+        console.log("Destination endpoint id:");
+        console.logUint(quote.dstEid);
     }
 
     function getPeer()
@@ -87,7 +117,7 @@ contract DeployerScript is Script {
         return
             factoryDeployer.Create3FactoryPeerInfo(
                 0x6EDCE65403992e310A62460808c4b910D972f10f,
-                0x39373a4869e6c9dbF4b3dF808b4631E47bC2F869, //messenger addr
+                0x4D175489c4e80B0C5Db20567db2fD569392A94c7, //messenger addr
                 40231,
                 421614,
                 block.timestamp,
@@ -102,8 +132,7 @@ contract DeployerScript is Script {
             address peerEndpoint,
             address endpoint,
             address delegate,
-            uint32 endpointId,
-            uint256 _num
+            uint32 endpointId
         ) = abi.decode(
                 _params,
                 (
@@ -112,12 +141,11 @@ contract DeployerScript is Script {
                     address,
                     address,
                     address,
-                    uint32,
-                    uint256
+                    uint32
                 )
             );
         deployer = new factoryDeployer(delegate, endpoint, endpointId);
-        deployer.storePeer(peerEndpointId, peerEndpoint);
+        deployer.storePeer(peerEndpointId, peer.messengerAddr);
         deployer.storeCreate3FactoryPeer(peer); //adds the messenger peer
 
         console.log("deployed deployer");
@@ -128,17 +156,15 @@ contract DeployerScript is Script {
         console.logUint(peerEndpointId);
     }
 
-    function deployCrossChain(uint256 _num) public {
-        deployCreate3Factory(_num);
-        console.log("Deploy successful");
-    }
-
     function deployCreate3Factory(uint256 _num) public {
         CREATE3FACTORY _factory = new CREATE3FACTORY();
         bytes memory creationCode = type(CREATE3FACTORY).creationCode;
-        deployer.setNativeFactory(_factory);
+        deployer.setNativeFactory(ICREATE3FACTORY(_factory));
         deployer.setFactoryCreationCode(creationCode);
         deployer.deployDeterministicFactoryNative(_num);
+        ICREATE3FACTORY deployed = deployer.getDeterministicFactory();
+        console.log("Deterministic CREATE3Factory Deployed:");
+        console.logAddress(address(deployed));
     }
 
     function getDeployQuote(
@@ -147,6 +173,8 @@ contract DeployerScript is Script {
         factoryDeployer.DeployQuote memory quote = deployer.deployPeerQuote(
             index
         );
+        console.log("Fee to pay:");
+        console.logUint(quote.fee.nativeFee);
 
         return quote;
     }
@@ -159,5 +187,18 @@ contract DeployerScript is Script {
             index,
             quote
         );
+
+        console.log("Peer deployment requested:");
+        console.log("Requested to endpoint id: ");
+        console.logUint(quote.dstEid);
+        console.log("Fee paid:");
+        console.logUint(quote.fee.nativeFee);
+        //       struct DeployQuote {
+        //     uint32 dstEid;
+        //     bytes message;
+        //     bytes options;
+        //     MessagingFee fee;
+        //     address refundAddress;
+        // }
     }
 }

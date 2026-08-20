@@ -53,11 +53,24 @@ forge script script/MessengerScript.s.sol --rpc-url wss://arbitrum-sepolia-rpc.p
 == Logs ==
 == Logs ==
   Deployed CREATE3FACTORY:
-  0x524975584071152Fbf323B701E34F5fe38B46a72
+  0xeB456386476653b38e327667cd874Acd8B98B9C0
   Deployed Messenger:
-  0x39373a4869e6c9dbF4b3dF808b4631E47bC2F869
+  0x4D175489c4e80B0C5Db20567db2fD569392A94c7
+  Endpoint deployed on:
+  0x6EDCE65403992e310A62460808c4b910D972f10f
+  Endpoint id:
 
 ## Setting up 1 EVM.
+
+
+
+hhow to call a fucntion └─❯  # 1. Make sure messenger points to a real CREATE3 factory
+cast call \
+0xDe9cc72b5B239B1E23db84076FFbE7159EF081aB \
+"factory()(address)" \
+--rpc-url wss://arbitrum-sepolia-rpc.publicnode.com
+zsh: command not found: #
+0xc3DF3898ca3bEC484002770Dceec2AB4d7c479D8
 
 
  */
@@ -70,7 +83,7 @@ contract MessengerScript is Script {
     function run() public {
         vm.startBroadcast();
         uint32 peerEndpointId = 40245;
-        address peerAddress;
+        address peerAddress = 0x1eEB9c27e93012a01907E7df3Fee5e1C722EeDA8; //deplyer address
         // address endpoint = address(0x6EDCE65403992e310A62460808c4b910D972f10f);
         // bytes memory initialParams = abi.encode(endpoint);
 
@@ -81,7 +94,7 @@ contract MessengerScript is Script {
         // console.log("Endpoint id:");
 
         messenger = Create3FactoryMessenger(
-            0x39373a4869e6c9dbF4b3dF808b4631E47bC2F869
+            0x4D175489c4e80B0C5Db20567db2fD569392A94c7
         );
         addPeer(peerEndpointId, peerAddress);
         vm.stopBroadcast();

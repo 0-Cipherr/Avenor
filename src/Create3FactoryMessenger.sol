@@ -48,7 +48,7 @@ import {
 contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
     ICREATE3FACTORY public factory; //factory deployed with deterministic addr
 
-    address public factoryDeterministic;
+    ICREATE3FACTORY public factoryDeterministic;
 
     enum MessageType {
         DeployFactoryDeterministic
@@ -60,6 +60,14 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
     ) Ownable(_delegate) OApp(_endpoint, _delegate) {}
     function setFactory(ICREATE3FACTORY _factory) public {
         factory = _factory;
+    }
+
+    function setDeterministicFactory(ICREATE3FACTORY _deployed) public {
+        factoryDeterministic = _deployed;
+    }
+
+    function getDeterministicFactory() public returns (address) {
+        return address(factoryDeterministic);
     }
 
     function storeFactoryPeer(uint32 _eid, address _peer) public {
@@ -74,7 +82,7 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         );
 
         (address deployed) = factory.deploy(salt, creationCode);
-        setFactory(ICREATE3FACTORY(deployed));
+        setDeterministicFactory(ICREATE3FACTORY(deployed));
     }
     function executeMessageType(
         MessageType _type,

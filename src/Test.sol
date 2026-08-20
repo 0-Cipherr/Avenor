@@ -101,7 +101,9 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
         uint32 endpointId
     ) Ownable(_delegate) OApp(_endpoint, _delegate) {}
     //set setPeer is alrady in OApp and is public
-
+    function getDeterministicFactory() public returns (ICREATE3FACTORY) {
+        return factory.deterministicFactory;
+    }
     function setNativeFactory(ICREATE3FACTORY _factory) public {
         factory.factoryDeployed = _factory;
     }
@@ -180,7 +182,7 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
     function getOptions() public pure returns (bytes memory) {
         bytes memory options = OptionsBuilder
             .newOptions()
-            .addExecutorLzReceiveOption(200000, 0); // gas limit, msg.value to forward
+            .addExecutorLzReceiveOption(1_000_000, 0); // gas limit, msg.value to forward
 
         return options;
     }
@@ -194,11 +196,11 @@ contract Test is Ownable, OApp, OAppOptionsType3 {
     ) public view returns (DeployQuote memory) {
         bytes memory options = getOptions();
         Create3FactoryPeerInfo memory peer = factoryPeers[index];
-        bytes memory message = abi.encode(
-            1,
+        bytes memory deployInfo = abi.encode(
             factory.salt,
             factory.creationCode
         );
+        bytes memory message = abi.encode(uint8(0), deployInfo);
         MessagingFee memory fee = messageQuote(peer.endpointId, message);
         return DeployQuote(peer.endpointId, message, options, fee, msg.sender);
     }
