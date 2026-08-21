@@ -23,7 +23,7 @@ pragma solidity ^0.8.20;
 
   to deploy deterministic factory: 
   # Base
-cast send <BOOTSTRAP_ADDRESS> \
+cast send 0x5CE1c405A905dF362715aC90E39e29d21C727C60 \
 "deploy(bytes32,bytes)(address)" \
 $SALT \
 $CODE \
@@ -31,7 +31,7 @@ $CODE \
 --account universal
 
 # Arbitrum
-cast send <SAME_BOOTSTRAP_ADDRESS> \
+cast send 0x38b13dB989770Df6b33d0f699C55c67f87E6674F \
 "deploy(bytes32,bytes)(address)" \
 $SALT \
 $CODE \
