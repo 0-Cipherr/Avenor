@@ -25,16 +25,16 @@ pragma solidity ^0.8.20;
   # Base
 cast send 0x5CE1c405A905dF362715aC90E39e29d21C727C60 \
 "deploy(bytes32,bytes)(address)" \
-$SALT \
-$CODE \
+"$SALT" \
+"$CODE" \
 --rpc-url wss://base-sepolia-rpc.publicnode.com \
 --account universal
 
 # Arbitrum
 cast send 0x38b13dB989770Df6b33d0f699C55c67f87E6674F \
 "deploy(bytes32,bytes)(address)" \
-$SALT \
-$CODE \
+"$SALT" \
+"$CODE" \
 --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com \
 --account universal
  * @author 
@@ -70,3 +70,7 @@ contract AvenorBootstrap {
         predicted = address(uint160(uint256(hash)));
     }
 }
+//
+//base factory eployed:@0x657919810120b68a50F0957fE53D0Eac6805F7B4
+//arb factory:
+///calling wllet: 0x2d9fd35ECc5C04701fCB9fF7e7d7563b57EE08e3

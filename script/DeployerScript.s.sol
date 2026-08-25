@@ -157,7 +157,9 @@ contract DeployerScript is Script {
     }
 
     function deployCreate3Factory(uint256 _num) public {
-        CREATE3FACTORY _factory = new CREATE3FACTORY();
+        CREATE3FACTORY _factory = CREATE3FACTORY(
+            0xe3EA6F670cD7A70289896B4fc47D0d794c7272eb
+        );
         bytes memory creationCode = type(CREATE3FACTORY).creationCode;
         deployer.setNativeFactory(ICREATE3FACTORY(_factory));
         deployer.setFactoryCreationCode(creationCode);

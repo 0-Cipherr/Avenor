@@ -4,8 +4,9 @@ pragma solidity ^0.8.13;
 import {CREATE3} from "solmate/utils/CREATE3.sol";
 
 import {ICREATE3FACTORY} from "./ICREATE3FACTORY.sol";
-
-//key takeaway account must be fresh nonce at 0 , nonce is the amount of transactions a wallet has 
+//ok no need for extra stuffjust use code u got rn here all u have to make sure
+//is wallets accross chain have the same nonce
+//key takeaway account must be fresh nonce at 0 , nonce is the amount of transactions a wallet has
 /**
  * "COmpleted first test dpeloyment of Create3Factory we plan on launching a
  *  factory on all chains for our product. THepurpose of this factory
@@ -57,8 +58,6 @@ contract CREATE3FACTORY is ICREATE3FACTORY {
         return CREATE3.getDeployed(salt);
     }
 }
-
-
 
 /*
 final approach to problem 
@@ -597,4 +596,3 @@ CREATE3 solves the vault address problem.
 LayerZero coordinates everything cross-chain.
 ============================================================
 */
-```

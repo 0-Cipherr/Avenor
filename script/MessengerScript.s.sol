@@ -109,7 +109,9 @@ contract MessengerScript is Script {
     }
 
     function deployCreate3Factory() public {
-        CREATE3FACTORY _factory = new CREATE3FACTORY();
+        CREATE3FACTORY _factory = CREATE3FACTORY(
+            0xe3EA6F670cD7A70289896B4fc47D0d794c7272eb
+        );
         messenger.setFactory(_factory);
         console.log("Deployed CREATE3FACTORY:");
         console.logAddress(address(_factory));
