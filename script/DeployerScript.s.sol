@@ -45,7 +45,7 @@ import {
     IMessageLibManager,
     SetConfigParam
 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
-import {AvenorFactoryHub as factoryDeployer} from "../src/Test.sol";
+import {AvenorFactoryHub as factoryDeployer} from "../src/AvenorFactoryHub.sol";
 /**
  * template format for runing script 
 forge script script/DeployerScript.s.sol --rpc-url wss://base-sepolia-rpc.publicnode.com --account Avenor_Multi --broadcast
@@ -82,18 +82,57 @@ contract DeployerScript is Script {
         address delegate = msg.sender;
         uint32 endpointId = 40245;
         address _factory;
+        address _msgrAddr;
+        uint32 _msgrEid;
+        address _msgrEndpoint;
+        factoryDeployer.MessengerInfo memory _msgrInfo = factoryDeployer
+            .MessengerInfo(_msgrAddr, _msgrEid, _msgrEndpoint);
         deployFactory(delegate, endpoint);
-        initialSetters(_factory);
+        initialSetters(ICREATE3FACTORY(address(_factory)), _msgrEid, _msgrInfo);
 
         vm.stopBroadcast();
     }
 
     function deployFactory(address _creator, address _endpoint) public {
-        deplyoer = new factoryDeployer(_creator, _endpoint);
+        deployer = new factoryDeployer(_creator, _endpoint);
     }
 
-    function initialSetters(ICREATE3FACTORY _factory) public {
+    function initialSetters(
+        ICREATE3FACTORY _factory,
+        uint32 _msgrPeerEid,
+        factoryDeployer.MessengerInfo memory __msgrInfo
+    ) public {
         deployer.setFactory(_factory);
-        // deployer.addMessenger();
+        deployer.addMessenger(_msgrPeerEid, __msgrInfo);
     }
+
+    function getDeployQuote(
+        uint32 _dstEId,
+        bytes memory _message,
+        bool _payInLzToken
+    ) public view returns (MessagingFee memory _quote) {
+        _quote = deployer.getMessageQuote(_dstEId, _message, _payInLzToken);
+    }
+
+    function deployContractHub(
+        address _creator,
+        bytes32 salt,
+        bytes memory creationCode
+    ) public {
+        deployer.deployContractHub(_creator, salt, creationCode);
+    }
+
+    function deployContractCrossChain(
+        MessagingFee memory _quote,
+        address _caller,
+        bytes32 salt,
+        bytes memory creationCode,
+        uint32 _dstEid
+    ) public {
+        deployer.crossChainDeploy(_quote, _caller, salt, creationCode, _dstEid);
+    }
+}
+
+contract TestContract {
+    constructor() {}
 }

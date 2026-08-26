@@ -21,6 +21,7 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
     address authDelegate; //authorized address that updates stuff in the contract
     address srcEndpoint; //source endpoint of chain this ca deploed on
     ICREATE3FACTORY factory;
+    mapping(address => address[]) deployments;
 
     struct MessengerInfo {
         address addr;
@@ -46,6 +47,10 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
         factory = _factory;
     }
 
+    function setDeployment(address _creator, address _deployment) public {
+        deployments[_creator].push(_deployment);
+    }
+
     function getFactory() public view returns (ICREATE3FACTORY) {
         return factory;
     }
@@ -63,20 +68,6 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
         return
             OptionsBuilder.newOptions().addExecutorLzReceiveOption(gasLimit, 0);
     }
-
-    function crossChainDeploy(
-        MessagingFee memory _quote,
-        address _caller,
-        bytes32 salt,
-        bytes memory creationCode,
-        uint32 _dstEid
-    ) public payable {
-        MessengerInfo memory msgrInfo = getMessenger(_dstEid);
-        bytes memory _options = generateOptions(1_000_000);
-        bytes memory _msgParams = abi.encode(salt, creationCode, _caller);
-        bytes memory _message = abi.encode(uint8(0), _msgParams);
-        _lzSend(msgrInfo.endpointId, _message, _options, _quote, _caller);
-    } //deploys a contract same address on another chain
 
     function getMessenger(
         uint32 _targetEndpoint
@@ -100,6 +91,28 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
             MessagingFee memory _quote = fees[i];
             crossChainDeploy(_quote, _caller, _salt, _creationCode, _dstEid);
         }
+    }
+    function crossChainDeploy(
+        MessagingFee memory _quote,
+        address _caller,
+        bytes32 salt,
+        bytes memory creationCode,
+        uint32 _dstEid
+    ) public payable {
+        MessengerInfo memory msgrInfo = getMessenger(_dstEid);
+        bytes memory _options = generateOptions(1_000_000);
+        bytes memory _msgParams = abi.encode(salt, creationCode, _caller);
+        bytes memory _message = abi.encode(uint8(0), _msgParams);
+        _lzSend(msgrInfo.endpointId, _message, _options, _quote, _caller);
+    } //deploys a contract same address on another chain
+
+    function deployContractHub(
+        address _creator,
+        bytes32 salt,
+        bytes memory creationCode
+    ) public {
+        (address deployed) = factory.deploy(salt, creationCode);
+        setDeployment(_creator, deployed);
     }
 
     function getMessageQuote(
