@@ -73,7 +73,7 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
     ) public payable {
         MessengerInfo memory msgrInfo = getMessenger(_dstEid);
         bytes memory _options = generateOptions(1_000_000);
-        bytes memory _msgParams = abi.encode(salt, creationCode);
+        bytes memory _msgParams = abi.encode(salt, creationCode, _caller);
         bytes memory _message = abi.encode(uint8(0), _msgParams);
         _lzSend(msgrInfo.endpointId, _message, _options, _quote, _caller);
     } //deploys a contract same address on another chain
@@ -90,12 +90,14 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
         MessagingFee[] memory fees,
         bytes32 _salt,
         bytes memory _creationCode
-    ) public {
-
-        require(_chains.length !== fees.length,"error hains and fees dont match");
+    ) public payable {
+        require(
+            _chains.length != fees.length,
+            "error chains  and fees dont match"
+        );
         for (uint256 i = 0; i < _chains.length; i++) {
             uint32 _dstEid = _chains[i];
-            MessagingFee[] memory _quote = fees[i];
+            MessagingFee memory _quote = fees[i];
             crossChainDeploy(_quote, _caller, _salt, _creationCode, _dstEid);
         }
     }

@@ -49,7 +49,7 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
     ICREATE3FACTORY public factory; //factory deployed with deterministic addr
 
     ICREATE3FACTORY public factoryDeterministic;
-
+    mapping(address => address[]) deployments;
     enum MessageType {
         DeployFactoryDeterministic
     }
@@ -66,7 +66,7 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         factoryDeterministic = _deployed;
     }
 
-    function getDeterministicFactory() public returns (address) {
+    function getDeterministicFactory() public view returns (address) {
         return address(factoryDeterministic);
     }
 
@@ -75,13 +75,18 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         setPeer(_eid, peer);
     }
 
+    function setDeployment(address _creator, address _deployment) public {
+        deployments[_creator].push(_deployment);
+    }
+
     function deployContract(bytes memory _params) public {
-        (bytes32 salt, bytes memory creationCode) = abi.decode(
+        (bytes32 salt, bytes memory creationCode, address _caller) = abi.decode(
             _params,
-            (bytes32, bytes)
+            (bytes32, bytes, address)
         );
 
         (address deployed) = factory.deploy(salt, creationCode);
+        setDeployment(_caller, deployed);
     }
     function executeMessageType(
         MessageType _type,
