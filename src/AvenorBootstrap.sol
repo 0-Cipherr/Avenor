@@ -31,7 +31,7 @@ cast send 0x5CE1c405A905dF362715aC90E39e29d21C727C60 \
 --account universal
 
 # Arbitrum
-cast send 0x38b13dB989770Df6b33d0f699C55c67f87E6674F \
+cast send 0x2d9fd35ECc5C04701fCB9fF7e7d7563b57EE08e3 \
 "deploy(bytes32,bytes)(address)" \
 "$SALT" \
 "$CODE" \
