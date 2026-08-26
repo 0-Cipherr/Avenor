@@ -62,6 +62,10 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         factory = _factory;
     }
 
+    function getDeploymentInfo() public {
+        //should be the owner of the dpeloyment only uses for developer to check deployment information
+    }
+
     function setDeterministicFactory(ICREATE3FACTORY _deployed) public {
         factoryDeterministic = _deployed;
     }

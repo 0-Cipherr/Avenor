@@ -122,6 +122,10 @@ contract DeployerScript is Script {
         deployer.deployContractHub(_creator, salt, creationCode);
     }
 
+    function deployTestContract() public returns (TestContract) {
+        return new TestContract();
+    }
+
     function deployContractCrossChain(
         MessagingFee memory _quote,
         address _caller,
