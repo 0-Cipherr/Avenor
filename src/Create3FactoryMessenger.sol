@@ -75,21 +75,20 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         setPeer(_eid, peer);
     }
 
-    function deployDeterministicFactory(bytes memory _params) public {
+    function deployContract(bytes memory _params) public {
         (bytes32 salt, bytes memory creationCode) = abi.decode(
             _params,
             (bytes32, bytes)
         );
 
         (address deployed) = factory.deploy(salt, creationCode);
-        setDeterministicFactory(ICREATE3FACTORY(deployed));
     }
     function executeMessageType(
         MessageType _type,
         bytes memory _params
     ) public {
         if (_type == MessageType.DeployFactoryDeterministic) {
-            deployDeterministicFactory(_params);
+            deployContract(_params);
         }
     }
     function addressToBytes(address _addr) public pure returns (bytes32) {

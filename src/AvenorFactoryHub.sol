@@ -11,8 +11,13 @@ import {
     OAppOptionsType3
 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {
+    OptionsBuilder
+} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
+    using OptionsBuilder for bytes;
+
     address authDelegate; //authorized address that updates stuff in the contract
     address srcEndpoint; //source endpoint of chain this ca deploed on
     ICREATE3FACTORY factory;
@@ -23,7 +28,7 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
         address endpoint;
     }
 
-    MessengerInfo[] messengers;
+    mapping(uint32 => MessengerInfo) messengers;
     /**
      *
      * @param _creator - creator of this factory hubchain
@@ -45,25 +50,71 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
         return factory;
     }
 
-    function addMessenger(MessengerInfo memory _messenger) public {
-        messengers.push(_messenger);
+    function addMessenger(
+        uint32 endpoint,
+        MessengerInfo memory _messenger
+    ) public {
+        messengers[endpoint] = _messenger;
     }
 
-    function generateOptions(uint256 gasLimit) public returns (bytes memory) {
-        Options.newOptions().addExecutorLzReceiveOption(gasLimit, 0);
+    function generateOptions(
+        uint128 gasLimit
+    ) public pure returns (bytes memory) {
+        return
+            OptionsBuilder.newOptions().addExecutorLzReceiveOption(gasLimit, 0);
     }
 
-    function crossChainDeployment(
-        address _caller,
+    function crossChainDeploy(
         MessagingFee memory _quote,
-        uint256 _msgrIndex
+        address _caller,
+        bytes32 salt,
+        bytes memory creationCode,
+        uint32 _dstEid
     ) public payable {
-        MessengerInfo memory msgrInfo = messengers[_msgrIndex];
-        bytes memory_options = generateOptions(1_000_000);
-        _lzSend(msgrInfo.endpointId, _message, _options, _quote._fee, _caller);
+        MessengerInfo memory msgrInfo = getMessenger(_dstEid);
+        bytes memory _options = generateOptions(1_000_000);
+        bytes memory _msgParams = abi.encode(salt, creationCode);
+        bytes memory _message = abi.encode(uint8(0), _msgParams);
+        _lzSend(msgrInfo.endpointId, _message, _options, _quote, _caller);
     } //deploys a contract same address on another chain
 
-    function crossChainBulkDepoyment() public view {}
+    function getMessenger(
+        uint32 _targetEndpoint
+    ) public view returns (MessengerInfo memory _messenger) {
+        return messengers[_targetEndpoint];
+    }
+
+    function crossChainBulkDepoyment(
+        address _caller,
+        uint32[] memory _chains,
+        MessagingFee[] memory fees,
+        bytes32 _salt,
+        bytes memory _creationCode
+    ) public {
+
+        require(_chains.length !== fees.length,"error hains and fees dont match");
+        for (uint256 i = 0; i < _chains.length; i++) {
+            uint32 _dstEid = _chains[i];
+            MessagingFee[] memory _quote = fees[i];
+            crossChainDeploy(_quote, _caller, _salt, _creationCode, _dstEid);
+        }
+    }
+
+    function getMessageQuote(
+        uint32 _dstEid,
+        bytes memory _message,
+        bool _payInLzToken
+    ) public view returns (MessagingFee memory _deployQuote) {
+        bytes memory _options = generateOptions(1_000_000);
+        (MessagingFee memory fee) = _quote(
+            _dstEid,
+            _message,
+            _options,
+            _payInLzToken
+        );
+        _deployQuote = fee;
+    }
+    function bulkMessageQuote() public {}
 
     /**
      *
