@@ -81,20 +81,26 @@ contract DeployerScript is Script {
         address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
         address delegate = msg.sender;
         uint32 endpointId = 40245;
-        address _factory;
+        ICREATE3FACTORY _factory = ICREATE3FACTORY(
+            0x317562cA062515B67D9dfaA28e3fEB12453b742D
+        );
         address _msgrAddr;
         uint32 _msgrEid;
         address _msgrEndpoint;
         factoryDeployer.MessengerInfo memory _msgrInfo = factoryDeployer
             .MessengerInfo(_msgrAddr, _msgrEid, _msgrEndpoint);
-        deployFactory(delegate, endpoint);
+        deployFactory(delegate, endpoint, endpointId);
         initialSetters(ICREATE3FACTORY(address(_factory)), _msgrEid, _msgrInfo);
 
         vm.stopBroadcast();
     }
 
-    function deployFactory(address _creator, address _endpoint) public {
-        deployer = new factoryDeployer(_creator, _endpoint);
+    function deployFactory(
+        address _creator,
+        address _endpoint,
+        uint32 _endpointId
+    ) public {
+        deployer = new factoryDeployer(_creator, _endpoint, _endpointId);
     }
 
     function initialSetters(

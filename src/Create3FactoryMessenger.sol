@@ -67,7 +67,11 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         factory = _factory;
     }
 
-    function getDeploymentInfo() public {
+    function getDeploymentInfo(
+        address _caller,
+        uint256 _index
+    ) public view returns (DeploymentInfo memory) {
+        return deployments[_caller][_index];
         //should be the owner of the dpeloyment only uses for developer to check deployment information
     }
 
@@ -97,7 +101,7 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
             (bytes32, bytes, address)
         );
 
-        (address deployed) = factory.deploy(salt, creationCode);
+        (address deployed) = factoryDeterministic.deploy(salt, creationCode);
         DeploymentInfo memory _deployment = DeploymentInfo(
             salt,
             creationCode,

@@ -82,21 +82,32 @@ contract MessengerScript is Script {
     ///left off deployinon another chain making sure address is the same
     function run() public {
         vm.startBroadcast();
+        address _delegate;
+        address _endpoint;
         uint32 peerEndpointId = 40245;
         address peerAddress = 0x1eEB9c27e93012a01907E7df3Fee5e1C722EeDA8; //deplyer address
-        // address endpoint = address(0x6EDCE65403992e310A62460808c4b910D972f10f);
-        // bytes memory initialParams = abi.encode(endpoint);
+        address endpoint = address(0x6EDCE65403992e310A62460808c4b910D972f10f);
+        ICREATE3FACTORY _deplyoedFactory = ICREATE3FACTORY(
+            0x317562cA062515B67D9dfaA28e3fEB12453b742D
+        );
 
-        // initialSetters(initialParams);
+        deployMessenger(_delegate, _endpoint);
+        initialSetters(_deplyoedFactory);
+
+        addPeer(peerEndpointId, peerAddress);
 
         // console.log("Endpoint deployed on:");
         // console.logAddress(endpoint);
         // console.log("Endpoint id:");
 
-        messenger = Create3FactoryMessenger(
-            0x4D175489c4e80B0C5Db20567db2fD569392A94c7
-        );
+        // messenger = Create3FactoryMessenger(
+        //     0x4D175489c4e80B0C5Db20567db2fD569392A94c7
+        // );
         vm.stopBroadcast();
+    }
+
+    function deployMessenger(address _delegate, address _endpoint) public {
+        messenger = new Create3FactoryMessenger(_delegate, _endpoint);
     }
 
     function addPeer(uint32 _eid, address _peer) public {

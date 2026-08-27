@@ -29,6 +29,8 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
         address endpoint;
     }
 
+    uint32 endpointId;
+
     mapping(uint32 => MessengerInfo) messengers;
     /**
      *
@@ -37,10 +39,12 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
      */
     constructor(
         address _creator,
-        address _srcEndpoint
+        address _srcEndpoint,
+        uint32 _endpointId
     ) Ownable(_creator) OApp(_creator, _srcEndpoint) {
         authDelegate = _creator;
         srcEndpoint = _srcEndpoint;
+        endpointId = _endpointId;
     }
 
     function setFactory(ICREATE3FACTORY _factory) public {

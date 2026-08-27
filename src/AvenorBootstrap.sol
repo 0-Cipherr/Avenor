@@ -13,12 +13,12 @@ pragma solidity ^0.8.20;
  * @title 
  * forge create src/AvenorBootstrap.sol:AvenorBootstrap \
   --rpc-url wss://base-sepolia-rpc.publicnode.com \
-  --account Avenor_Multi \
+  --account test \
   --broadcast
 
   forge create src/AvenorBootstrap.sol:AvenorBootstrap \
   --rpc-url wss://arbitrum-sepolia-rpc.publicnode.com \
-  --account Avenor_Multi \
+  --account test \
   --broadcast
 
   to deploy deterministic factory: 
