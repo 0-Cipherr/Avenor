@@ -49,7 +49,12 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
     ICREATE3FACTORY public factory; //factory deployed with deterministic addr
 
     ICREATE3FACTORY public factoryDeterministic;
-    mapping(address => address[]) deployments;
+    struct DeploymentInfo {
+        bytes32 _salt;
+        bytes creationCode;
+        address deployment;
+    }
+    mapping(address => DeploymentInfo[]) deployments;
     enum MessageType {
         DeployFactoryDeterministic
     }
@@ -79,7 +84,10 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         setPeer(_eid, peer);
     }
 
-    function setDeployment(address _creator, address _deployment) public {
+    function setDeployment(
+        address _creator,
+        DeploymentInfo memory _deployment
+    ) public {
         deployments[_creator].push(_deployment);
     }
 
@@ -90,7 +98,12 @@ contract Create3FactoryMessenger is OApp, OAppOptionsType3 {
         );
 
         (address deployed) = factory.deploy(salt, creationCode);
-        setDeployment(_caller, deployed);
+        DeploymentInfo memory _deployment = DeploymentInfo(
+            salt,
+            creationCode,
+            deployed
+        );
+        setDeployment(_caller, _deployment);
     }
     function executeMessageType(
         MessageType _type,

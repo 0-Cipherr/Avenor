@@ -96,27 +96,18 @@ contract MessengerScript is Script {
         messenger = Create3FactoryMessenger(
             0x4D175489c4e80B0C5Db20567db2fD569392A94c7
         );
-        addPeer(peerEndpointId, peerAddress);
         vm.stopBroadcast();
     }
 
-    function initialSetters(bytes memory _params) public {
-        (address _endpoint) = abi.decode(_params, (address));
-        messenger = new Create3FactoryMessenger(msg.sender, _endpoint);
-        deployCreate3Factory();
-        console.log("Deployed Messenger:");
-        console.logAddress(address(messenger));
-    }
-
-    function deployCreate3Factory() public {
-        CREATE3FACTORY _factory = CREATE3FACTORY(
-            0xe3EA6F670cD7A70289896B4fc47D0d794c7272eb
-        );
-        messenger.setFactory(_factory);
-        console.log("Deployed CREATE3FACTORY:");
-        console.logAddress(address(_factory));
-    }
     function addPeer(uint32 _eid, address _peer) public {
         messenger.storeFactoryPeer(_eid, _peer);
+    }
+
+    function setMsgrFactory(ICREATE3FACTORY _factory) public {
+        messenger.setDeterministicFactory(_factory);
+    }
+
+    function initialSetters(ICREATE3FACTORY _factory) public {
+        setMsgrFactory(_factory);
     }
 }
