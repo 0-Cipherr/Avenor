@@ -92,7 +92,7 @@ contract DeployerScript is Script {
         // deployFactory(delegate, endpoint, endpointId);
         // initialSetters(_factory, _msgrEid, _msgrInfo);
         deployer = factoryDeployer(0x4743982a661e36604222cC74823F08C13e620418);
-        vm.stopBroadcast();
+        MessagingFee memory deployQuote = vm.stopBroadcast();
     }
 
     function deployFactory(
@@ -127,7 +127,8 @@ contract DeployerScript is Script {
     ) public {
         deployer.deployContractHub(_creator, salt, creationCode);
     }
-
+    // /assin a salt upon dpeloyment
+    struct DeployInfo {}
     function deployTestContract() public returns (TestContract) {
         return new TestContract();
     }
