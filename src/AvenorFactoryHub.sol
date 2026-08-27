@@ -41,7 +41,7 @@ contract AvenorFactoryHub is Ownable, OApp, OAppOptionsType3 {
         address _creator,
         address _srcEndpoint,
         uint32 _endpointId
-    ) Ownable(_creator) OApp(_creator, _srcEndpoint) {
+    ) Ownable(_creator) OApp(_srcEndpoint, _creator) {
         authDelegate = _creator;
         srcEndpoint = _srcEndpoint;
         endpointId = _endpointId;

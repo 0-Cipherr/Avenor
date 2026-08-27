@@ -79,19 +79,19 @@ contract DeployerScript is Script {
     function run() public {
         vm.startBroadcast();
         address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
-        address delegate = msg.sender;
+        address delegate = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
         uint32 endpointId = 40245;
         ICREATE3FACTORY _factory = ICREATE3FACTORY(
             0x317562cA062515B67D9dfaA28e3fEB12453b742D
         );
-        address _msgrAddr;
-        uint32 _msgrEid;
-        address _msgrEndpoint;
-        factoryDeployer.MessengerInfo memory _msgrInfo = factoryDeployer
-            .MessengerInfo(_msgrAddr, _msgrEid, _msgrEndpoint);
-        deployFactory(delegate, endpoint, endpointId);
-        initialSetters(ICREATE3FACTORY(address(_factory)), _msgrEid, _msgrInfo);
-
+        address _msgrAddr = 0x02c40C38eA51A56DDE9455d77b8424Df0788f0a6;
+        uint32 _msgrEid = 40231;
+        address _msgrEndpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
+        // factoryDeployer.MessengerInfo memory _msgrInfo = factoryDeployer
+        //     .MessengerInfo(_msgrAddr, _msgrEid, _msgrEndpoint);
+        // deployFactory(delegate, endpoint, endpointId);
+        // initialSetters(_factory, _msgrEid, _msgrInfo);
+        deployer = factoryDeployer(0x4743982a661e36604222cC74823F08C13e620418);
         vm.stopBroadcast();
     }
 

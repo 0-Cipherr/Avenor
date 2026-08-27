@@ -72,7 +72,7 @@ cast call \
 zsh: command not found: #
 0xc3DF3898ca3bEC484002770Dceec2AB4d7c479D8
 
-
+addy: 0x02c40C38eA51A56DDE9455d77b8424Df0788f0a6
  */
 
 contract MessengerScript is Script {
@@ -82,27 +82,29 @@ contract MessengerScript is Script {
     ///left off deployinon another chain making sure address is the same
     function run() public {
         vm.startBroadcast();
-        address _delegate;
-        address _endpoint;
+        address _delegate = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
+        address _endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
         uint32 peerEndpointId = 40245;
-        address peerAddress = 0x1eEB9c27e93012a01907E7df3Fee5e1C722EeDA8; //deplyer address
+        address peerAddress = 0x4743982a661e36604222cC74823F08C13e620418; //deplyer address
         address endpoint = address(0x6EDCE65403992e310A62460808c4b910D972f10f);
         ICREATE3FACTORY _deplyoedFactory = ICREATE3FACTORY(
             0x317562cA062515B67D9dfaA28e3fEB12453b742D
         );
 
-        deployMessenger(_delegate, _endpoint);
-        initialSetters(_deplyoedFactory);
+        // deployMessenger(_delegate, _endpoint);
+        // initialSetters(_deplyoedFactory);
 
-        addPeer(peerEndpointId, peerAddress);
+        // addPeer(peerEndpointId, peerAddress);
 
         // console.log("Endpoint deployed on:");
         // console.logAddress(endpoint);
         // console.log("Endpoint id:");
 
-        // messenger = Create3FactoryMessenger(
-        //     0x4D175489c4e80B0C5Db20567db2fD569392A94c7
-        // );
+        messenger = Create3FactoryMessenger(
+            0x4D175489c4e80B0C5Db20567db2fD569392A94c7
+        );
+
+        addPeer(peerEndpointId, peerAddress);
         vm.stopBroadcast();
     }
 
