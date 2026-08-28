@@ -20,14 +20,23 @@ contract Vault is Ownable, OApp {
     uint256 totalAssets;
     uint256 idleAssets;
     uint256 totalSupply;
+    uint256 creatorFee;
+    uint256 protocolFee;
+    address asset;
 
     constructor(
         address _vaultAsset,
         address _creator,
-        address _endpoint
+        address _endpoint,
+        uint256 _creatorFee,
+        uint256 _protocolFee,
+        address _asset
     ) Ownable(_creator) OApp(_endpoint, _creator) {
         vaultAsset = _vaultAsset;
         creator = _creator;
+        creatorFee = _creatorFee;
+        protocolFee = _protocolFee;
+        asset = _asset;
     }
 
     event Deposit(
@@ -63,6 +72,7 @@ contract Vault is Ownable, OApp {
         address depositor;
         uint256 assets;
         uint256 shares;
+        uint256 assetVolume;
     }
 
     mapping(address => DepositorInfo) depositors;
@@ -199,12 +209,23 @@ Share supply = 5,000 shares
         require(receiver == msg.sender, "caller is not the set reciever");
         require(msg.value == assets, "Missing ETH To Complete!");
         shares = convertToShares(assets);
-        setSharesOwned(shares, receiver, false);
+        if (hasDeposited(receiver) != true) {
+            setDepositor(
+                receiver,
+                DepositorInfo(receiver, assets, shares, assets)
+            );
+        } else {
+            setSharesOwned(shares, receiver, false);
+            setVolume(receiver, assets);
+        }
+
         emit Deposit(receiver, receiver, assets, shares);
 
         //deposit into vault
     }
-
+    function hasDeposited(address _user) public view returns (bool) {
+        return depositors[_user].assetVolume > 0;
+    }
     function setAssetsDeposited(
         uint256 _amount,
         address _assetOwner,
@@ -213,6 +234,10 @@ Share supply = 5,000 shares
         isDeducted
             ? assetsDeposited[_assetOwner] -= _amount
             : assetsDeposited[_assetOwner] += _amount;
+    }
+
+    function setVolume(address _user, uint256 _newVolume) public {
+        depositors[_user].assetVolume += _newVolume;
     }
 
     function setSharesOwned(
