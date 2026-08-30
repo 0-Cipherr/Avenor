@@ -3,6 +3,11 @@ pragma solidity ^0.8.20;
 import {
     OAppOptionsType3
 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {
+    ERC4626
+} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {
     ReadCodecV1,
     EVMCallRequestV1
@@ -14,7 +19,11 @@ import {
     Origin,
     MessagingFee
 } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-contract Vault is Ownable, OApp {
+import {VaultHelper} from "./VaultHelper.sol";
+import {MessagingHelper} from "./MessagingHelper.sol";
+import {StrategyHelper} from "./StrategyHelper.sol";
+
+contract Vault is Ownable, OApp, ERC4626 {
     address vaultAsset;
     address creator;
     uint256 totalAssets;
@@ -22,7 +31,11 @@ contract Vault is Ownable, OApp {
     uint256 totalSupply;
     uint256 creatorFee;
     uint256 protocolFee;
-    address asset;
+    IERC20 asset;
+    address creatorFeeReciever;
+    address protoclFeeReceiver;
+    mapping(address => uint256) sharesOwned;
+    mapping(address => uint256) assetsDeposited;
 
     constructor(
         address _vaultAsset,
@@ -30,81 +43,24 @@ contract Vault is Ownable, OApp {
         address _endpoint,
         uint256 _creatorFee,
         uint256 _protocolFee,
-        address _asset
-    ) Ownable(_creator) OApp(_endpoint, _creator) {
+        IERC20 _asset,
+        address _creatorFeeReciever,
+        address _protoclFeeReceiver
+    ) Ownable(_creator) OApp(_endpoint, _creator) ERC4626(_asset) {
         vaultAsset = _vaultAsset;
         creator = _creator;
         creatorFee = _creatorFee;
         protocolFee = _protocolFee;
         asset = _asset;
+        creatorFeeReciever = _creatorFeeReciever;
+        protoclFeeReceiver = _protoclFeeReceiver;
     }
 
-    event Deposit(
-        address indexed caller,
-        address indexed receiver,
-        uint256 assets,
-        uint256 shares
-    );
+    mapping(address => VaultHelper.DepositorInfo) depositors;
 
-    event Withdraw(
-        address indexed caller,
-        address indexed receiver,
-        address indexed owner,
-        uint256 assets,
-        uint256 shares
-    );
-
-    event StrategyAdded(address indexed strategy);
-
-    event StrategyRemoved(address indexed strategy);
-
-    event CapitalDeployed(address indexed strategy, uint256 assets);
-
-    event CapitalReturned(address indexed strategy, uint256 assets);
-
-    event Harvest(
-        address indexed strategy,
-        uint256 totalAssets,
-        int256 profitOrLoss
-    );
-
-    struct DepositorInfo {
-        address depositor;
-        uint256 assets;
-        uint256 shares;
-        uint256 assetVolume;
-    }
-
-    mapping(address => DepositorInfo) depositors;
-    /*//////////////////////////////////////////////////////////////
-                                Messaging
-    //////////////////////////////////////////////////////////////*/
-
-    struct ComposedMessage {
-        uint32 _dstEid;
-        MessagingFee _fee;
-        bytes _message;
-        bytes _options;
-        bool payInLzToken;
-        address _refundAddress;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                STRUCTS
-    //////////////////////////////////////////////////////////////*/
-
-    struct StrategyPosition {
-        bool enabled;
-        uint256 debt;
-        uint256 lastReportedAssets;
-    }
     // bytes strategyInfo //bytes suppose dot be strategy info struct containing info and addresses
 
-    StrategyPosition strategyPosition;
-
-    /*//////////////////////////////////////////////////////////////
-                             VAULT METADATA
-    //////////////////////////////////////////////////////////////*/
+    VaultHelper.StrategyPosition strategyPosition;
 
     function getAsset() public view returns (address) {
         return vaultAsset;
@@ -115,10 +71,6 @@ contract Vault is Ownable, OApp {
     }
 
     function getAuthorizer() public view returns (address) {}
-
-    /*//////////////////////////////////////////////////////////////
-                              ACCOUNTING
-    //////////////////////////////////////////////////////////////*/
 
     function getTotalAssets() public view returns (uint256) {
         return totalAssets;
@@ -142,7 +94,7 @@ contract Vault is Ownable, OApp {
 
     function convertToShares(
         uint256 assets
-    ) public view returns (uint256 shares) {
+    ) public view override returns (uint256 shares) {
         shares = (assets * totalSupply) / totalAssets;
         /**
          * 
@@ -161,6 +113,13 @@ Share supply = 5,000 shares
          */
     }
 
+    function calculatePercentage(
+        uint256 amount,
+        uint256 basisPoints
+    ) public pure returns (uint256) {
+        // Multiply before you divide to prevent rounding down to zero
+        return (amount * basisPoints) / 10000;
+    }
     /*//////////////////////////////////////////////////////////////
                              PREVIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -192,12 +151,10 @@ Share supply = 5,000 shares
     /*//////////////////////////////////////////////////////////////
                               USER ACTIONS
     //////////////////////////////////////////////////////////////*/
-    mapping(address => uint256) sharesOwned;
-    mapping(address => uint256) assetsDeposited;
 
     function setDepositor(
         address _depositor,
-        DepositorInfo memory _info
+        VaultHelper.DepositorInfo memory _info
     ) public {
         depositors[_depositor] = _info;
     }
@@ -212,7 +169,7 @@ Share supply = 5,000 shares
         if (hasDeposited(receiver) != true) {
             setDepositor(
                 receiver,
-                DepositorInfo(receiver, assets, shares, assets)
+                VaultHelper.DepositorInfo(receiver, assets, shares, assets)
             );
         } else {
             setSharesOwned(shares, receiver, false);
@@ -261,6 +218,8 @@ Share supply = 5,000 shares
     ) public returns (uint256 shares) {
         require(receiver == msg.sender, "Not owner");
         setAssetsDeposited(_amount, receiver, true);
+        uint256 totalFee = calculatePercentage() +
+            calculatePercentage(amount, basisPoints);
         emit Withdraw(receiver, receiver, receiver, assets, shares);
         // withdraw out of vault to user
     }
@@ -283,11 +242,11 @@ Share supply = 5,000 shares
     //////////////////////////////////////////////////////////////*/
 
     function addStrategy(address _strategy) public {
-        emit StrategyAdded(_strategy);
+        emit VaultHelper.StrategyAdded(_strategy);
     }
 
     function removeStrategy(address _strategy) public {
-        emit StrategyRemoved(_strategy);
+        emit VaultHelper.StrategyRemoved(_strategy);
     }
 
     function deployCapital(
@@ -295,7 +254,7 @@ Share supply = 5,000 shares
         uint256 assets,
         bytes calldata data
     ) public returns (uint256 assetsDeployed) {
-        emit CapitalDeployed(_strategy, assets);
+        emit VaultHelper.CapitalDeployed(_strategy, assets);
     }
 
     function withdrawCapital(
@@ -303,15 +262,17 @@ Share supply = 5,000 shares
         uint256 assets,
         bytes calldata data
     ) public returns (uint256 assetsReturned) {
-        emit CapitalReturned(_strategy, assets);
+        emit VaultHelper.CapitalReturned(_strategy, assets);
     }
 
     function harvest(
         address _strategy,
         bytes calldata data
-    ) public returns (uint256 currentAssets, int256 profitOrLoss) {
-        emit Harvest(_strategy, totalAssets, profitOrLoss);
+    ) public returns (uint256 currentAssets, int256 profitOrLoss) {}
+    function flush(address reciever) public {
+        payable(reciever).call{value: address(this).balance}("");
     }
+    function payFee() {}
 
     /*//////////////////////////////////////////////////////////////
                                 VIEWS
@@ -322,7 +283,7 @@ Share supply = 5,000 shares
     function getStrategyPosition()
         public
         view
-        returns (StrategyPosition memory)
+        returns (VaultHelper.StrategyPosition memory)
     {
         return strategyPosition;
     }
@@ -332,7 +293,7 @@ Share supply = 5,000 shares
         bytes memory _options,
         bool _payLzToken,
         address _refundAddress
-    ) public view returns (ComposedMessage memory) {
+    ) public view returns (MessagingHelper.ComposedMessage memory) {
         MessagingFee memory _fee = _quote(
             _dstEid,
             _message,
@@ -340,7 +301,7 @@ Share supply = 5,000 shares
             _payLzToken
         );
         return
-            ComposedMessage(
+            MessagingHelper.ComposedMessage(
                 _dstEid,
                 _fee,
                 _message,
@@ -349,7 +310,7 @@ Share supply = 5,000 shares
                 _refundAddress
             );
     }
-    function sendMessage(ComposedMessage memory _msg) public {
+    function sendMessage(MessagingHelper.ComposedMessage memory _msg) public {
         _lzSend(
             _msg._dstEid,
             _msg._message,
