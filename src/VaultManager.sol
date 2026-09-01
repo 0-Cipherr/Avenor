@@ -23,7 +23,7 @@ import {VaultHelper} from "./VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {StrategyHelper} from "./StrategyHelper.sol";
 
-contract Vault is Ownable, OApp, ERC20, ERC4626 {
+contract VaultManager is Ownable, OApp, ERC4626 {
     address vaultAsset;
     address creator;
     uint256 totalAssets;
