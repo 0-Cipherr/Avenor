@@ -71,19 +71,19 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
 
     function crossChainDeposit(uint32 _dstEid, uint256 assets, address receiver) public {}
 
-    function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
+    function deposit(uint256 assets, address receiver) public override returns (uint256 _shares) {
         require(receiver == msg.sender, "caller is not the set reciever");
         require(msg.value == assets, "Missing ETH To Complete!");
-        shares = convertToShares(assets);
-        mint(shares, receiver);
+        _shares = convertToShares(assets);
+        mintShares(_shares, receiver);
         if (hasDeposited(receiver) != true) {
-            setDepositor(receiver, VaultHelper.DepositorInfo(receiver, assets, shares, assets));
+            setDepositor(receiver, VaultHelper.DepositorInfo(receiver, assets, _shares, assets));
         } else {
-            setSharesOwned(shares, receiver, false);
+            setSharesOwned(_shares, receiver, false);
             setVolume(receiver, assets);
         }
 
-        emit Deposit(receiver, receiver, assets, shares);
+        emit Deposit(receiver, receiver, assets, _shares);
 
         //deposit into vault
     }
@@ -101,25 +101,23 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
     }
 
     function setSharesOwned(uint256 _amount, address _shareOwner, bool isDeducted) public {
-        isDeducted ? sharesOwned[_shareOwner] -= _amount : sharesOwned[_shareOwner] += _amount;
+        isDeducted ? shares[_shareOwner] -= _amount : shares[_shareOwner] += _amount;
     }
 
-    function withdraw(uint256 assets, address receiver, uint256 _amount, bool sendFunds)
-        public
-        returns (uint256 shares)
-    {
+    function withdraw(uint256 _shares, address receiver, uint256 _amount, bool sendFunds) public {
         require(receiver == msg.sender, "Not owner");
-        setAssetsDeposited(_amount, receiver, true);
-        uint256 totalFee = calculatePercentage(_amount, _amount) + calculatePercentage(_amount, _amount);
-        emit Withdraw(receiver, receiver, receiver, assets, shares);
+        uint256 _total = previewWithdraw(_shares);
+
+        setAssetsDeposited(_amount - _total, receiver, true);
+        emit Withdraw(receiver, receiver, receiver, _total, _shares);
         // withdraw out of vault to user
     }
 
     function withdrawCrossChainQuote(address _user, uint32 _dstEid, bytes memory _message, bytes memory _options)
         public
-        returns (MessagingFee memory _quote)
+        returns (MessagingHelper.ComposedMessage memory _quote)
     {
-        (MessagingFee memory fee) = messageQuote(_dstEid, _message, _options, false, _user);
+        (MessagingHelper.ComposedMessage memory fee) = messageQuote(_dstEid, _message, _options, false, _user);
         _quote = fee;
     }
     function withdrawCrossChain(uint32 _dstEid, address _reciever, uint256 _amount) public {}

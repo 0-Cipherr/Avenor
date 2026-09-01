@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -98,8 +97,9 @@ contract VaultAssets is ERC4626 {
         _reedemable = (_shares * _totalAssets) / _totalSupply;
     }
 
-    function previewWithdraw(uint256 _assets) public view override returns (uint256 _shares) {
-        _shares = calculateBurn(_assets);
+    function previewWithdraw(uint256 _shares) public view override returns (uint256 _assets) {
+        _assets = convertToAssets(_shares);
+
         //previewWithdraw() answers: "How many shares would need to be burned if I withdraw this amount of assets?"
     }
 
