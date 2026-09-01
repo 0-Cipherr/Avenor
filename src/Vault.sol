@@ -8,11 +8,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
     ERC4626
 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {
     ReadCodecV1,
     EVMCallRequestV1
 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
-import {OAppRead} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppRead.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {
     OApp,
@@ -23,7 +23,7 @@ import {VaultHelper} from "./VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {StrategyHelper} from "./StrategyHelper.sol";
 
-contract Vault is Ownable, OApp, ERC4626 {
+contract Vault is Ownable, OApp, ERC20, ERC4626 {
     address vaultAsset;
     address creator;
     uint256 totalAssets;
@@ -38,6 +38,8 @@ contract Vault is Ownable, OApp, ERC4626 {
     mapping(address => uint256) assetsDeposited;
 
     constructor(
+        string memory vaultName,
+        string memory vaultTicker,
         address _vaultAsset,
         address _creator,
         address _endpoint,
@@ -46,7 +48,12 @@ contract Vault is Ownable, OApp, ERC4626 {
         IERC20 _asset,
         address _creatorFeeReciever,
         address _protoclFeeReceiver
-    ) Ownable(_creator) OApp(_endpoint, _creator) ERC4626(_asset) {
+    )
+        Ownable(_creator)
+        OApp(_endpoint, _creator)
+        ERC20(vaultName, vaultTicker)
+        ERC4626(_asset)
+    {
         vaultAsset = _vaultAsset;
         creator = _creator;
         creatorFee = _creatorFee;
@@ -105,7 +112,7 @@ Share supply = 5,000 shares
 
     function convertToAssets(
         uint256 shares
-    ) public view returns (uint256 assets) {
+    ) public view override returns (uint256 assets) {
         assets = (shares * totalAssets) / totalSupply;
         /**
          *
@@ -126,8 +133,9 @@ Share supply = 5,000 shares
 
     function previewDeposit(
         uint256 assets
-    ) public view returns (uint256 shares) {
+    ) public view override returns (uint256 shares) {
         shares = convertToShares(assets);
+        //no fees on deposit
         /**
          *
          * @param assets previewDeposit() answers: "If I deposited this amount right now, approximately how many shares would I receive?"
@@ -136,15 +144,31 @@ Share supply = 5,000 shares
 
     function previewWithdraw(
         uint256 assets
-    ) public view returns (uint256 shares) {
+    ) public view override returns (uint256 shares) {
         shares = calculateBurn(assets);
         //previewWithdraw() answers: "How many shares would need to be burned if I withdraw this amount of assets?"
     }
 
+    uint256 baseline = 10_000;
+
+    function calculateFees(uint256 _assets) public returns (uint256) {
+        uint256 creatorFeeDeducted = (_assets * creatorFee) / baseline;
+        uint256 protocolFeeDeducted = (_assets * protocolFee) / baseline;
+        uint256 feeTotalDeductions = creatorFeeDeducted - protocolFeeDeducted;
+        require(
+            _assets - feeTotalDeductions > 0,
+            "Underflow tansaction reverted"
+        );
+        uint256 _total = _assets - feeTotalDeductions; //total with deductions included
+
+        return _total;
+    }
+
     function previewRedeem(
         uint256 _shares
-    ) public view returns (uint256 assets) {
-        assets = calculateReedem(_shares);
+    ) public view override returns (uint256 assets) {
+        uint256 assetsToRecieve = convertToAssets(_shares);
+        assets = calculateFees(assetsToRecieve);
         //previewRedeem() answers the opposite question: "If I burn this many shares, how many assets will I receive?"
     }
 
@@ -159,13 +183,20 @@ Share supply = 5,000 shares
         depositors[_depositor] = _info;
     }
 
+    function crossChainDeposit(
+        uint32 _dstEid,
+        uint256 assets,
+        address receiver
+    ) public {}
+
     function deposit(
         uint256 assets,
         address receiver
-    ) public payable returns (uint256 shares) {
+    ) public override returns (uint256 shares) {
         require(receiver == msg.sender, "caller is not the set reciever");
         require(msg.value == assets, "Missing ETH To Complete!");
         shares = convertToShares(assets);
+        mint(shares, receiver);
         if (hasDeposited(receiver) != true) {
             setDepositor(
                 receiver,
@@ -214,14 +245,24 @@ Share supply = 5,000 shares
     function withdraw(
         uint256 assets,
         address receiver,
-        uint256 _amount
+        uint256 _amount,
+        bool sendFunds
     ) public returns (uint256 shares) {
         require(receiver == msg.sender, "Not owner");
         setAssetsDeposited(_amount, receiver, true);
-        uint256 totalFee = calculatePercentage() +
-            calculatePercentage(amount, basisPoints);
+        uint256 totalFee = calculatePercentage(_amount, _amount) +
+            calculatePercentage(_amount, _amount);
         emit Withdraw(receiver, receiver, receiver, assets, shares);
         // withdraw out of vault to user
+    }
+
+    function withdrawCrossChainQuote(
+        uint32 _dstEid,
+        bytes memory _message
+    ) public returns (MessagingFee memory _quote) {
+        bytes memory _options = bytes("");
+        (MessagingFee memory fee) = _quote(_dstEid, _message, _options, false);
+        _quote = fee;
     }
     function withdrawCrossChain(
         uint32 _dstEid,
@@ -233,7 +274,7 @@ Share supply = 5,000 shares
         uint256 shares,
         address receiver,
         address owner
-    ) public returns (uint256 assets) {
+    ) public override returns (uint256 assets) {
         //redeem() burns a specific amount of Vault shares and returns however many underlying assets those shares are worth.
     }
 
@@ -272,7 +313,9 @@ Share supply = 5,000 shares
     function flush(address reciever) public {
         payable(reciever).call{value: address(this).balance}("");
     }
-    function payFee() {}
+    function flush(address reciever, uint256 _amount) public {
+        payable(reciever).call{value: address(this).balance}("");
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 VIEWS
