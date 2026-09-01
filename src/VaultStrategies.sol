@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: UNLICENSED
+
+pragma solidity ^0.8.20;
+
 import {IStrategyRouter} from "./IStrategyRouter.sol";
 import {VaultHelper} from "./VaultHelper.sol";
 
