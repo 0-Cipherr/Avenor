@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
+
 library VaultHelper {
     event Deposit(address indexed caller, address indexed receiver, uint256 assets, uint256 shares);
 

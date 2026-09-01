@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 library StrategyHelper {
     event Harvest(address indexed strategy, uint256 totalAssets, int256 profitOrLoss);
