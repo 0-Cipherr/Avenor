@@ -10,11 +10,7 @@ interface IVaultStrategy {
 
     event Withdrawn(address indexed vault, uint256 assets);
 
-    event Harvested(
-        address indexed vault,
-        uint256 totalAssets,
-        int256 profitOrLoss
-    );
+    event Harvested(address indexed vault, uint256 totalAssets, int256 profitOrLoss);
 
     /*//////////////////////////////////////////////////////////////
                                 METADATA
@@ -55,19 +51,13 @@ interface IVaultStrategy {
      * Example:
      * USDC -> Aave supply()
      */
-    function deposit(
-        uint256 assets,
-        bytes calldata data
-    ) external returns (uint256 assetsDeployed);
+    function deposit(uint256 assets, bytes calldata data) external returns (uint256 assetsDeployed);
 
     /**
      * @notice Pull assets out of the underlying protocol
      *         and return them to the Vault.
      */
-    function withdraw(
-        uint256 assets,
-        bytes calldata data
-    ) external returns (uint256 assetsReturned);
+    function withdraw(uint256 assets, bytes calldata data) external returns (uint256 assetsReturned);
 
     /**
      * @notice Exit the entire strategy.
@@ -77,9 +67,7 @@ interface IVaultStrategy {
      * - emergency exit
      * - migrating strategy
      */
-    function withdrawAll(
-        bytes calldata data
-    ) external returns (uint256 assetsReturned);
+    function withdrawAll(bytes calldata data) external returns (uint256 assetsReturned);
 
     /*//////////////////////////////////////////////////////////////
                                HARVEST
@@ -92,7 +80,5 @@ interface IVaultStrategy {
      * @return profitOrLoss Positive = profit.
      *                      Negative = loss.
      */
-    function harvest(
-        bytes calldata data
-    ) external returns (uint256 currentAssets, int256 profitOrLoss);
+    function harvest(bytes calldata data) external returns (uint256 currentAssets, int256 profitOrLoss);
 }

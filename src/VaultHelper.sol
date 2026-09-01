@@ -1,17 +1,8 @@
 library VaultHelper {
-    event Deposit(
-        address indexed caller,
-        address indexed receiver,
-        uint256 assets,
-        uint256 shares
-    );
+    event Deposit(address indexed caller, address indexed receiver, uint256 assets, uint256 shares);
 
     event Withdraw(
-        address indexed caller,
-        address indexed receiver,
-        address indexed owner,
-        uint256 assets,
-        uint256 shares
+        address indexed caller, address indexed receiver, address indexed owner, uint256 assets, uint256 shares
     );
 
     event StrategyAdded(address indexed strategy);
@@ -28,6 +19,7 @@ library VaultHelper {
         uint256 shares;
         uint256 assetVolume;
     }
+
     struct StrategyPosition {
         bool enabled;
         uint256 debt;
