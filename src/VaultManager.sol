@@ -11,20 +11,19 @@ import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp
 import {VaultHelper} from "./VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {StrategyHelper} from "./StrategyHelper.sol";
+import {VaultAssets} from "../src/VaultAssets.sol";
+import {VaultStrategies} from "./VaultStrategies.sol";
 
-contract VaultManager is Ownable, OApp, ERC4626 {
+contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
     address vaultAsset;
     address creator;
     uint256 totalAssets;
     uint256 idleAssets;
     uint256 totalSupply;
-    uint256 creatorFee;
-    uint256 protocolFee;
+
     IERC20 asset;
     address creatorFeeReciever;
     address protoclFeeReceiver;
-    mapping(address => uint256) sharesOwned;
-    mapping(address => uint256) assetsDeposited;
 
     constructor(
         string memory vaultName,
@@ -34,10 +33,15 @@ contract VaultManager is Ownable, OApp, ERC4626 {
         address _endpoint,
         uint256 _creatorFee,
         uint256 _protocolFee,
-        IERC20 _asset,
         address _creatorFeeReciever,
-        address _protoclFeeReceiver
-    ) Ownable(_creator) OApp(_endpoint, _creator) ERC20(vaultName, vaultTicker) ERC4626(_asset) {
+        address _protoclFeeReceiver,
+        IERC20 _asset
+    )
+        Ownable(_creator)
+        OApp(_endpoint, _creator)
+        VaultAssets(vaultName, vaultTicker, _asset, _creatorFee, _protocolFee)
+        VaultStrategies()
+    {
         vaultAsset = _vaultAsset;
         creator = _creator;
         creatorFee = _creatorFee;
@@ -51,8 +55,6 @@ contract VaultManager is Ownable, OApp, ERC4626 {
 
     // bytes strategyInfo //bytes suppose dot be strategy info struct containing info and addresses
 
-    VaultHelper.StrategyPosition strategyPosition;
-
     function getAsset() public view returns (address) {
         return vaultAsset;
     }
@@ -62,83 +64,6 @@ contract VaultManager is Ownable, OApp, ERC4626 {
     }
 
     function getAuthorizer() public view returns (address) {}
-
-    function getTotalAssets() public view returns (uint256) {
-        return totalAssets;
-    }
-
-    function getIdleAssets() external view returns (uint256) {
-        return idleAssets;
-    } //assets not in a strategy
-
-    function calculateBurn(uint256 _assets) public view returns (uint256 shares) {
-        shares = (_assets * totalSupply) / totalAssets;
-    }
-
-    function calculateReedem(uint256 _shares) public view returns (uint256 _reedemable) {
-        _reedemable = (_shares * totalAssets) / totalSupply;
-    }
-
-    function convertToShares(uint256 assets) public view override returns (uint256 shares) {
-        shares = (assets * totalSupply) / totalAssets;
-        /**
-         *
-         * @param shares Vault assets = 10,000 USDC
-         * Share supply = 5,000 shares
-         */
-    }
-
-    function convertToAssets(uint256 shares) public view override returns (uint256 assets) {
-        assets = (shares * totalAssets) / totalSupply;
-        /**
-         *
-         * @param assets 500 shares = 1,000 USDC
-         */
-    }
-
-    function calculatePercentage(uint256 amount, uint256 basisPoints) public pure returns (uint256) {
-        // Multiply before you divide to prevent rounding down to zero
-        return (amount * basisPoints) / 10000;
-    }
-    /*//////////////////////////////////////////////////////////////
-                             PREVIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function previewDeposit(uint256 assets) public view override returns (uint256 shares) {
-        shares = convertToShares(assets);
-        //no fees on deposit
-        /**
-         *
-         * @param assets previewDeposit() answers: "If I deposited this amount right now, approximately how many shares would I receive?"
-         */
-    }
-
-    function previewWithdraw(uint256 assets) public view override returns (uint256 shares) {
-        shares = calculateBurn(assets);
-        //previewWithdraw() answers: "How many shares would need to be burned if I withdraw this amount of assets?"
-    }
-
-    uint256 baseline = 10_000;
-
-    function calculateFees(uint256 _assets) public returns (uint256) {
-        uint256 creatorFeeDeducted = (_assets * creatorFee) / baseline;
-        uint256 protocolFeeDeducted = (_assets * protocolFee) / baseline;
-        uint256 feeTotalDeductions = creatorFeeDeducted - protocolFeeDeducted;
-        require(_assets - feeTotalDeductions > 0, "Underflow tansaction reverted");
-        uint256 _total = _assets - feeTotalDeductions; //total with deductions included
-
-        return _total;
-    }
-
-    function previewRedeem(uint256 _shares) public view override returns (uint256 assets) {
-        uint256 assetsToRecieve = convertToAssets(_shares);
-        assets = calculateFees(assetsToRecieve);
-        //previewRedeem() answers the opposite question: "If I burn this many shares, how many assets will I receive?"
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                              USER ACTIONS
-    //////////////////////////////////////////////////////////////*/
 
     function setDepositor(address _depositor, VaultHelper.DepositorInfo memory _info) public {
         depositors[_depositor] = _info;
@@ -179,10 +104,6 @@ contract VaultManager is Ownable, OApp, ERC4626 {
         isDeducted ? sharesOwned[_shareOwner] -= _amount : sharesOwned[_shareOwner] += _amount;
     }
 
-    function mintShares(uint256 _amount, address _minter) public {}
-
-    function burnTokens(uint256 _amount, address _burner) public {}
-
     function withdraw(uint256 assets, address receiver, uint256 _amount, bool sendFunds)
         public
         returns (uint256 shares)
@@ -194,68 +115,29 @@ contract VaultManager is Ownable, OApp, ERC4626 {
         // withdraw out of vault to user
     }
 
-    function withdrawCrossChainQuote(uint32 _dstEid, bytes memory _message)
+    function withdrawCrossChainQuote(address _user, uint32 _dstEid, bytes memory _message, bytes memory _options)
         public
         returns (MessagingFee memory _quote)
     {
-        bytes memory _options = bytes("");
-        (MessagingFee memory fee) = _quote(_dstEid, _message, _options, false);
+        (MessagingFee memory fee) = messageQuote(_dstEid, _message, _options, false, _user);
         _quote = fee;
     }
     function withdrawCrossChain(uint32 _dstEid, address _reciever, uint256 _amount) public {}
 
-    function redeem(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
-        //redeem() burns a specific amount of Vault shares and returns however many underlying assets those shares are worth.
+    //must verify asset is bridged before using or executing
+    function payUser(address _user, uint256 _amount) public returns (bool) {
+        (bool success,) = payable(_user).call{value: _amount}("");
+        require(success != false, "User was not paid");
+        return success;
     }
 
     /*//////////////////////////////////////////////////////////////
                            STRATEGY MANAGEMENT
     //////////////////////////////////////////////////////////////*/
 
-    function addStrategy(address _strategy) public {
-        emit VaultHelper.StrategyAdded(_strategy);
-    }
-
-    function removeStrategy(address _strategy) public {
-        emit VaultHelper.StrategyRemoved(_strategy);
-    }
-
-    function deployCapital(address _strategy, uint256 assets, bytes calldata data)
-        public
-        returns (uint256 assetsDeployed)
-    {
-        emit VaultHelper.CapitalDeployed(_strategy, assets);
-    }
-
-    function withdrawCapital(address _strategy, uint256 assets, bytes calldata data)
-        public
-        returns (uint256 assetsReturned)
-    {
-        emit VaultHelper.CapitalReturned(_strategy, assets);
-    }
-
-    function harvest(address _strategy, bytes calldata data)
-        public
-        returns (uint256 currentAssets, int256 profitOrLoss)
-    {}
-
-    function flush(address reciever) public {
-        payable(reciever).call{value: address(this).balance}("");
-    }
-
-    function flush(address reciever, uint256 _amount) public {
-        payable(reciever).call{value: address(this).balance}("");
-    }
-
     /*//////////////////////////////////////////////////////////////
                                 VIEWS
     //////////////////////////////////////////////////////////////*/
-
-    function getStrategies() public view returns (address[] memory) {}
-
-    function getStrategyPosition() public view returns (VaultHelper.StrategyPosition memory) {
-        return strategyPosition;
-    }
 
     function messageQuote(
         uint32 _dstEid,
