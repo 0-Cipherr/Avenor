@@ -28,6 +28,7 @@ import {VaultStrategies} from "./VaultStrategies.sol";
 contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
     address creator;
     uint256 vaultTotalAssets;
+
     uint256 idleAssets;
     uint256 totalSupply;
 
@@ -155,10 +156,16 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
 
     function withdrawCrossChainQuote(
         address _user,
+        uint256 _shares,
         uint32 _dstEid,
-        bytes memory _message,
         bytes memory _options
     ) public returns (MessagingHelper.ComposedMessage memory _quote) {
+        uint256 assetsTotal = previewWithdraw(_shares);
+        bytes memory _message = abi.encodeWithSignature(
+            "payUser(address,uint256)",
+            _user,
+            assetsTotal
+        );
         (MessagingHelper.ComposedMessage memory fee) = messageQuote(
             _dstEid,
             _message,
@@ -169,10 +176,10 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
         _quote = fee;
     }
     function withdrawCrossChain(
-        uint32 _dstEid,
-        address _reciever,
-        uint256 _amount
-    ) public {}
+        MessagingHelper.ComposedMessage memory _quote
+    ) public payable {
+        sendMessage(_quote);
+    }
 
     //must verify asset is bridged before using or executing
     function payUser(address _user, uint256 _amount) public returns (bool) {
@@ -222,6 +229,7 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
             _msg._refundAddress
         );
     }
+
     function _lzReceive(
         Origin calldata,
         /*_origin*/
@@ -231,5 +239,9 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
         address,
         /*_executor*/
         bytes calldata /*_extraData*/
-    ) internal override {}
+    ) internal override {
+        (uint256 _type) = abi.decode(_message, (uint256));
+    }
 }
+
+//forge fmt --check for debugging before publishing to github thats why commits filw e dont chekc the code
