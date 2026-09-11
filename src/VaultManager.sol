@@ -66,7 +66,7 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
         authorizedVip.push(authroized);
     }
 
-    function setDepositor(address _depositor, VaultHelper.DepositorInfo memory _info) public {
+    function createDepositor(address _depositor, VaultHelper.DepositorInfo memory _info) public {
         depositors[_depositor] = _info;
     }
 
@@ -78,7 +78,7 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
         require(successfulTransfer, "Transfer did not go through check approvals;");
         mintShares(_shares, receiver);
         if (hasDeposited(receiver) != true) {
-            setDepositor(receiver, VaultHelper.DepositorInfo(receiver, assets, _shares, assets));
+            createDepositor(receiver, VaultHelper.DepositorInfo(receiver, assets, _shares, assets));
         } else {
             setSharesOwned(_shares, receiver, false);
             setVolume(receiver, assets);
@@ -104,21 +104,38 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
     }
 
     function setSharesOwned(uint256 _amount, address _shareOwner, bool isDeducted) public {
+        if (isDeducted) {
+            require(depositors[_shareOwner].shares >= _amount, "Not enogh o perform arethmetic");
+        }
         isDeducted ? shares[_shareOwner] -= _amount : shares[_shareOwner] += _amount;
     }
 
-    function withdrawAssets(uint256 _shares, address receiver, uint256 _amount, bool sendFunds) public {
+    function updateDepositorAssets(uint256 _assetAmount, uint256 _shareAmount, address _user) public {
+        require(address(msg.sender) == address(_user), "Not user only sender can call this !");
+        require(depositors[_user].shares >= _shareAmount, "Not enough shares to withdraw!");
+        depositors[_user].shares -= _shareAmount;
+        depositors[_user].assets -= _assetAmount;
+
+        //    _deposit -= _withdrawAmount;;
+    }
+
+    //this is performed with api synchrounosly
+    function withdrawAssets(uint256 _shares, address receiver) public {
+        VaultHelper.DepositorInfo memory _depositor = getDepositor(receiver);
+        require(_depositor.shares >= _shares, "Not enough shares deposited to withdraw!");
         require(receiver == msg.sender, "Not owner");
         uint256 _total = previewWithdraw(_shares);
         bool successfulTransfer = vaultAsset.transfer(msg.sender, _total); //must be approved
         require(successfulTransfer, "Transfer did not go through check approvals;");
-        setAssetsDeposited(_amount - _total, receiver, true);
+        setSharesOwned(_shares, receiver, true);
+        updateDepositorAssets(_total, _shares, receiver); //this cannot exist we need a new fnction
         emit Withdraw(receiver, receiver, receiver, _total, _shares);
         // withdraw out of vault to user
     }
 
     function withdrawCrossChainQuote(address _user, uint256 _shares, uint32 _dstEid, bytes memory _options)
         public
+        view
         returns (MessagingHelper.ComposedMessage memory _quote)
     {
         uint256 assetsTotal = previewWithdraw(_shares);
