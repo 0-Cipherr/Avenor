@@ -2,9 +2,7 @@
 pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {
-    ERC4626
-} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 contract VaultAssets is ERC4626 {
     uint256 _totalSupply;
@@ -18,7 +16,13 @@ contract VaultAssets is ERC4626 {
         address protocolFee;
         address creatorFee;
     }
+
+    struct FeesInfo {
+        uint256 _creatorFee;
+        uint256 _protocolFee;
+    }
     feeReceiversInfo feeRecievers;
+    FeesInfo fees;
     uint256 precision = 10_000;
     mapping(address => uint256) shares;
     mapping(address => uint256) assetsDeposited;
@@ -28,11 +32,19 @@ contract VaultAssets is ERC4626 {
         string memory _name,
         string memory _ticker,
         IERC20 _asset,
-        uint256 _creatorFee,
-        uint256 _protocolFee
+        FeesInfo memory feeInfo,
+        feeReceiversInfo memory _recievers
     ) ERC20(_name, _ticker) ERC4626(_asset) {
-        creatorFee = _creatorFee;
-        protocolFee = _protocolFee;
+        feeRecievers = _recievers;
+        fees = feeInfo;
+    }
+
+    function getFeeRecievers() public view returns (feeReceiversInfo memory) {
+        return feeRecievers;
+    }
+
+    function getFees() public view returns (FeesInfo memory) {
+        return fees;
     }
 
     function getTotalAssets() public view returns (uint256) {
@@ -54,33 +66,29 @@ contract VaultAssets is ERC4626 {
         _burn(_burner, _amount);
     }
 
-    function calculateFees(
-        uint256 _amount
-    ) public view returns (uint256 _total) {
-        uint256 _formattedAmount = _amount * 1e18;
-        uint256 protocolFeeDeducted = ((_formattedAmount) * (protocolFee)) /
-            1e18;
-        uint256 creatorFeeDeducted = ((_formattedAmount) * (creatorFee)) / 1e18;
-        _total = (_amount * 1e18) - protocolFeeDeducted - creatorFeeDeducted;
+    uint256 BPS = 10000;
+
+    //ex for fees set: 5% 500,
+    //6.5% , 650
+    // /to calculate must multiple amount by 1e18s
+    function calculateFees(uint256 _amount) public view returns (uint256 _total) {
+        // 1. Calculate fees directly using BPS (No extra 1e18 scaling needed)
+        uint256 protocolFeeDeducted = (_amount * fees._protocolFee) / BPS;
+        uint256 creatorFeeDeducted = (_amount * fees._creatorFee) / BPS;
+
+        // 2. Subtract the fees from the original amount
+        _total = _amount - protocolFeeDeducted - creatorFeeDeducted;
     }
 
-    function convertToShares(
-        uint256 assets
-    ) public view override returns (uint256 _shares) {
-        _shares = (_totalAssets * _totalSupply) / _totalAssets;
-        /**
-         *
-         * @param shares Vault assets = 10,000 USDC
-         * Share supply = 5,000 shares
-         *
-         *
-         * function
-         */
+    function convertToShares(uint256 assets) public view override returns (uint256 _shares) {
+        if (_totalAssets == 0 || _totalSupply == 0) {
+            return assets;
+        }
+
+        _shares = (assets * _totalSupply) / _totalAssets;
     }
 
-    function convertToAssets(
-        uint256 _shares
-    ) public view override returns (uint256 assets) {
+    function convertToAssets(uint256 _shares) public view override returns (uint256 assets) {
         assets = (_shares * _totalAssets) / _totalSupply;
         uint256 feesApplied = calculateFees(assets);
         assets = feesApplied;
@@ -95,9 +103,7 @@ contract VaultAssets is ERC4626 {
     }
     function previewDeposit() public view returns (uint256) {}
 
-    function previewDeposit(
-        uint256 _assets
-    ) public view override returns (uint256 _shares) {
+    function previewDeposit(uint256 _assets) public view override returns (uint256 _shares) {
         _shares = convertToShares(_assets);
         //no fees on deposit
         /**
@@ -106,38 +112,28 @@ contract VaultAssets is ERC4626 {
          */
     }
 
-    function calculateBurn(
-        uint256 _assets
-    ) public view returns (uint256 _shares) {
+    function calculateBurn(uint256 _assets) public view returns (uint256 _shares) {
         _shares = (_assets * _totalSupply) / _totalAssets;
     }
 
-    function calculateReedem(
-        uint256 _shares
-    ) public view returns (uint256 _reedemable) {
+    function calculateReedem(uint256 _shares) public view returns (uint256 _reedemable) {
         _reedemable = (_shares * _totalAssets) / _totalSupply;
     }
 
-    function previewWithdraw(
-        uint256 _shares
-    ) public view override returns (uint256 _assets) {
+    function previewWithdraw(uint256 _shares) public view override returns (uint256 _assets) {
         _assets = convertToAssets(_shares);
 
         //previewWithdraw() answers: "How many shares would need to be burned if I withdraw this amount of assets?"
     }
 
-    function previewRedeem(
-        uint256 _shares
-    ) public view override returns (uint256 _assets) {
+    function previewRedeem(uint256 _shares) public view override returns (uint256 _assets) {
         uint256 assetsToRecieve = convertToAssets(_shares);
         _assets = calculateFees(assetsToRecieve);
         //previewRedeem() answers the opposite question: "If I burn this many shares, how many assets will I receive?"
     }
 
     function flush(address reciever, uint256 _amount) public returns (bool) {
-        (bool success, ) = payable(reciever).call{value: address(this).balance}(
-            ""
-        );
+        (bool success,) = payable(reciever).call{value: address(this).balance}("");
         require(success, "Transfer failed");
         return success;
     }
