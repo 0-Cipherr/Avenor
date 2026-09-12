@@ -69,10 +69,10 @@ contract VaultManagerTest is Test {
         console.logAddress(address(manager));
     }
 
-    function getVaultAssetBalance(address _caller) public returns (uint256) {
+    function getVaultAssetBalance(address _caller) public view {
         console.log("VaultAsset BALANCE OF");
         console.logAddress(_caller);
-        return vaultAsset.getBalance(_caller);
+        console.logUint(vaultAsset.getBalance(_caller));
     }
 
     function withdrawVaultAssets(
@@ -117,7 +117,7 @@ contract VaultManagerTest is Test {
     function mathTest() public view {
         uint256 amount = 500e18;
 
-        uint256 total = manager.calculateFees(amount);
+        (uint256 total, , ) = manager.calculateFees(amount);
 
         console.log("amount before:");
         console.logUint(amount);
