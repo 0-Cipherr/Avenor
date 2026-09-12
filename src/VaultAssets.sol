@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract VaultAssets is ERC4626 {
     uint256 _totalSupply;
@@ -88,14 +89,12 @@ contract VaultAssets is ERC4626 {
         _shares = (assets * _totalSupply) / _totalAssets;
     }
 
-    function convertToAssets(uint256 _shares) public view override returns (uint256 assets) {
-        assets = (_shares * _totalAssets) / _totalSupply;
-        uint256 feesApplied = calculateFees(assets);
-        assets = feesApplied;
-        /**
-         *
-         * @param assets 500 shares = 1,000 USDC
-         */
+    function convertToAssets(uint256 _shares) public view override returns (uint256 _assets) {
+        if (_totalSupply == 0) {
+            return _shares;
+        }
+
+        _assets = (_shares * _totalAssets) / _totalSupply;
     }
 
     function getSharePrice() public view returns (uint256) {

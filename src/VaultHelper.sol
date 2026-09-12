@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 library VaultHelper {
     event Deposit(address indexed caller, address indexed receiver, uint256 assets, uint256 shares);
 
-    event Withdraw(
+    event VaultWithdraw(
         address indexed caller, address indexed receiver, address indexed owner, uint256 assets, uint256 shares
     );
 

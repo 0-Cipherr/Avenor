@@ -6,7 +6,6 @@ import {VaultManager} from "../src/VaultManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {console} from "forge-std/console.sol";
 import {VaultHelper} from "../src/VaultHelper.sol";
-import {VaultHelper} from "../src/VaultHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
 import {TokenDeployer} from "../src/TokenDeployer.sol";
 
@@ -23,11 +22,17 @@ contract VaultManagerTest is Test {
 
     function run() public {
         vm.startBroadcast();
+        uint256 _toDeposit = 100;
+        uint256 _toWithdraw = 50;
         // getFees();
         // mathTest();
         setUpENV();
         deployToken();
-        test_deposit(100, msg.sender);
+        approveTokenSpending();
+        console.log("Depositor Info Before: ");
+        test_deposit(_toDeposit, msg.sender);
+        console.log("Depositor Info After:");
+        withdrawVaultAssets(_toWithdraw, msg.sender);
         vm.stopBroadcast();
     }
 
@@ -49,12 +54,28 @@ contract VaultManagerTest is Test {
         console.logAddress(address(manager));
     }
 
+    function withdrawVaultAssets(uint256 _amountShares, address _reciever) public {
+        uint256 _assetsToRecieve = previewWithdraw(_amountShares);
+        console.log("Assets to Recieve:");
+        console.logUint(_assetsToRecieve);
+        manager.withdrawAssets(_amountShares, _reciever);
+        getUserInfo();
+    }
+
+    function previewDeposit(uint256 _assets) public view returns (uint256 _sharesToRecieve) {
+        _sharesToRecieve = manager.previewDeposit(_assets);
+    }
+
+    function previewWithdraw(uint256 _shares) public view returns (uint256 _assetsToRecieve) {
+        _assetsToRecieve = manager.previewWithdraw(_shares);
+    }
+
     function mintDeployedToken() public {
         vaultAsset.mintTokens(msg.sender, 1000);
     }
 
     function approveTokenSpending() public {
-        vaultAsset.approve(address(manager), 1000);
+        vaultAsset.approve(address(manager), 1000000000);
     }
 
     function fundTokensWallet() public {}
@@ -89,14 +110,21 @@ contract VaultManagerTest is Test {
         return deployedToken;
     }
 
+    //deposit works and coin transfers work
     function test_deposit(uint256 _assets, address _receiver) public {
         mintDeployedToken();
         approveTokenSpending();
+        console.log("Depositing Assets");
+
         manager.depositAssets(_assets, _receiver);
-        verifyDeposit();
+        console.log("===================");
+
+        console.log("Withdrawing Assets");
+        console.log("===================");
+        getUserInfo();
     }
 
-    function verifyDeposit() public view {
+    function getUserInfo() public view {
         VaultHelper.DepositorInfo memory _depositInfo = manager.getDepositor(msg.sender);
         console.log("Shares Balance:");
         console.logUint(_depositInfo.shares);
@@ -108,11 +136,7 @@ contract VaultManagerTest is Test {
         console.log(_depositInfo.depositor);
     }
 
-    function test_withdraw() public {
-        VaultHelper.DepositorInfo memory _depositInfo = manager.getDepositor(msg.sender);
-        uint256 _amount = manager.previewWithdraw(_depositInfo.shares);
-        manager.withdrawAssets(_depositInfo.shares, msg.sender, _amount, true);
-    }
+    //next test make sure that this works
 }
 
 // address[] memory _authorizedVip,
