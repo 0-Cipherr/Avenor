@@ -145,7 +145,9 @@ contract VaultAssets is ERC4626 {
         uint256 _shares
     ) public view override returns (uint256 _assets) {
         _assets = convertToAssets(_shares);
+        (uint256 _total, , ) = calculateFees(_assets);
 
+        _assets = _total;
         //previewWithdraw() answers: "How many shares would need to be burned if I withdraw this amount of assets?"
     }
 

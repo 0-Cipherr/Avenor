@@ -31,8 +31,13 @@ contract VaultManagerTest is Test {
         approveTokenSpending();
         console.log("Depositor Info Before: ");
         test_deposit(_toDeposit, msg.sender);
+        getVaultAssetBalance(msg.sender);
+        getVaultAssetBalance(address(manager));
+
         console.log("Depositor Info After:");
         withdrawVaultAssets(_toWithdraw, msg.sender);
+        getVaultAssetBalance(msg.sender);
+        getVaultAssetBalance(address(manager));
         vm.stopBroadcast();
     }
 
@@ -44,17 +49,36 @@ contract VaultManagerTest is Test {
         address creator = msg.sender;
         address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
         VaultAssets.FeesInfo memory fees = VaultAssets.FeesInfo(700, 500);
-        VaultAssets.feeReceiversInfo memory feeRecievers =
-            VaultAssets.feeReceiversInfo(msg.sender, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d); //endpoint id for base 40245
+        VaultAssets.feeReceiversInfo memory feeRecievers = VaultAssets
+            .feeReceiversInfo(
+                msg.sender,
+                0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
+            ); //endpoint id for base 40245
         manager = new VaultManager(
-            authorized, vaultName, vaultTicker, IERC20(address(vaultAsset)), creator, endpoint, fees, feeRecievers
+            authorized,
+            vaultName,
+            vaultTicker,
+            IERC20(address(vaultAsset)),
+            creator,
+            endpoint,
+            fees,
+            feeRecievers
         );
 
         console.log("Deployed manager: ");
         console.logAddress(address(manager));
     }
 
-    function withdrawVaultAssets(uint256 _amountShares, address _reciever) public {
+    function getVaultAssetBalance(address _caller) public returns (uint256) {
+        console.log("VaultAsset BALANCE OF");
+        console.logAddress(_caller);
+        return vaultAsset.getBalance(_caller);
+    }
+
+    function withdrawVaultAssets(
+        uint256 _amountShares,
+        address _reciever
+    ) public {
         uint256 _assetsToRecieve = previewWithdraw(_amountShares);
         console.log("Assets to Recieve:");
         console.logUint(_assetsToRecieve);
@@ -62,11 +86,15 @@ contract VaultManagerTest is Test {
         getUserInfo();
     }
 
-    function previewDeposit(uint256 _assets) public view returns (uint256 _sharesToRecieve) {
+    function previewDeposit(
+        uint256 _assets
+    ) public view returns (uint256 _sharesToRecieve) {
         _sharesToRecieve = manager.previewDeposit(_assets);
     }
 
-    function previewWithdraw(uint256 _shares) public view returns (uint256 _assetsToRecieve) {
+    function previewWithdraw(
+        uint256 _shares
+    ) public view returns (uint256 _assetsToRecieve) {
         _assetsToRecieve = manager.previewWithdraw(_shares);
     }
 
@@ -125,7 +153,9 @@ contract VaultManagerTest is Test {
     }
 
     function getUserInfo() public view {
-        VaultHelper.DepositorInfo memory _depositInfo = manager.getDepositor(msg.sender);
+        VaultHelper.DepositorInfo memory _depositInfo = manager.getDepositor(
+            msg.sender
+        );
         console.log("Shares Balance:");
         console.logUint(_depositInfo.shares);
         console.log("Volume: ");

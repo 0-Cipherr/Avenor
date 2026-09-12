@@ -217,7 +217,9 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
         );
         require(receiver == msg.sender, "Not owner");
         uint256 _total = previewWithdraw(_shares);
+        splitRewards(_total, receiver); //splitrewards before paying out
         bool successfulTransfer = vaultAsset.transferFrom(
+            //send funds to user when done
             msg.sender,
             address(this),
             _total
