@@ -1,66 +1,22 @@
-## Foundry
+# Avenor Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+**Avenor** is a modular on-chain yield infrastructure designed to connect vaults, strategies, and cross-chain bridges.
 
-Foundry consists of:
+### 🏗️ Architecture
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+* **Vaults** — ERC-4626 yield vaults
+* **Strategies** — Modular yield strategies
+* **Registry** — Tracks deployed components
+* **Factory** — Deploys vaults and strategies
+* **Bridges** — Cross-chain asset & message routing
 
-## Documentation
+### ⚙️ Stack
 
-https://book.getfoundry.sh/
+* Solidity
+* Foundry
+* OpenZeppelin
+* LayerZero
 
-## Usage
+### 🚀 Development
 
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+> **Avenor — modular yield infrastructure **
