@@ -1,48 +1,51 @@
-# Compiler files
-cache/
-out/
+# ==========================================
+# 1. Compiler Files & Build Artifacts
+# ==========================================
+/out/
+/cache/
 
-# Commonly ignored directories
-.logs/
-.ignore/
-
-# Ignores development broadcast logs
-!/broadcast
+# ==========================================
+# 2. Foundry Script Broadcasts & Logs
+# ==========================================
+# Keep the folder structure but ignore specific network/dry-run logs
+!/broadcast/
 /broadcast/*/31337/
 /broadcast/**/dry-run/
 
-# Docs
-docs/
-
-# Dotenv file
+# ==========================================
+# 3. Environment Variables & Secrets
+# ==========================================
 .env
 .env.*
 !.env.example
+config.json
 
-
-# Ignore specific key files
+# Crypto keys and certificates
 id_rsa
 *.pem
 *.key
 
-# Ignore environment variable files
-.env
-config.json
-
-# Build artifacts and cache
-/out/
-/cache/
-/broadcast/
-
-# Environment and sensitive data
-.env
-
-# Dependencies (if not tracking lib submodules explicitly)
+# ==========================================
+# 4. Dependencies
+# ==========================================
+# Uncomment the line below if you do not track lib submodules explicitly
 # lib/
 
-# IDE and Editor files
+# ==========================================
+# 5. IDE, Editors, and OS Files
+# ==========================================
 .idea/
 .vscode/
 *.swp
 *.swo
 .DS_Store
+
+# ==========================================
+# 6. Miscellaneous & Documentation
+# ==========================================
+.logs/
+.ignore/
+docs/
+# Tools and Dependency Caches
+.deps/
+.wake/
