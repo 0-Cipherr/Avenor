@@ -27,7 +27,7 @@ import {VaultStrategies} from "./VaultStrategies.sol";
 import {
     MessagingReceipt
 } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-
+import {VaultManager} from "./VaultManager.sol";
 contract VaultRouter {
     mapping(address => VaultHelper.AvenorUser) avenorUsers;
     constructor() {}
