@@ -28,9 +28,15 @@ import {
     MessagingReceipt
 } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {VaultManager} from "./VaultManager.sol";
-contract VaultRouter {
+import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
+
+contract VaultRegistry {
     mapping(address => VaultHelper.AvenorUser) avenorUsers;
-    constructor() {}
+    mapping(address => VaultHelper.AvenorCreator) avenorCreators;
+
+    constructor(VaultFactory _vaultFactory) {
+        vaultFactory = _vaultFactory;
+    }
 
     function addUser(
         address _userAddr,
@@ -39,13 +45,34 @@ contract VaultRouter {
         avenorUsers[_userAddr] = _newUser;
     }
 
+    function addCreator(VaultHelper.AvenorCreator memory creator) public {
+        require(creator.creatorAddress == address(msg.sender));
+        avenorCreators[msg.sender] = creator;
+    }
+
+    function getCreator(
+        address creator
+    ) public returns (VaultHelper.AvenorCreator memory) {
+        return avenorCreators[creator];
+    }
+
     function getUser(
         address _user
     ) public view returns (VaultHelper.AvenorUser memory) {
         return avenorUsers[_user];
     }
 
-    function deployVault() public {}
+    function setDeployedVaults(address deployer, VaultFactory vaults) public {
+        require(deployer == address(msg.sender), "Deployer must be caller!");
+        avenorCreators[deployer].vaultsDeployed.push(vaults);
+    }
+
+    function deployHubVault(address deployer) public {
+        VaultFactory vaultDpeloyed = new VaultFactory();
+        setDeployedVaults(deployer, vaultDpeloyed);
+    }
+
+    function deployMultiChainBridge() public {}
 
     function mcVaultDeployment() public {}
 

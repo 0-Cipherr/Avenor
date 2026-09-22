@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
+import {IVaultManager} from "./IVaultManager.sol";
 
 library VaultHelper {
     event Deposit(
@@ -42,5 +43,17 @@ library VaultHelper {
         address _userAdr;
         uint256 _accountCreatedAt;
         uint256 numVaultsCreated;
+        uint256 _feesEarned;
+        uint256 _totalVolume;
+    }
+
+    struct AvenorCreator {
+        address creatorAddress;
+        uint256 _vaulteVolumesTotal;
+        IVaultManager[] vaultsDpeloyed;
+    }
+
+    struct VaultDeployParams{}{
+        address dpeloyer; 
     }
 }
