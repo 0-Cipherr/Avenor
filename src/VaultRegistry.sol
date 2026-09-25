@@ -1,40 +1,23 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
-import {
-    OAppOptionsType3
-} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+import {OAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {
-    ERC4626
-} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {
-    ReadCodecV1,
-    EVMCallRequestV1
-} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
+import {ReadCodecV1, EVMCallRequestV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {
-    OApp,
-    Origin,
-    MessagingFee
-} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {VaultHelper} from "./VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {StrategyHelper} from "./StrategyHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
 import {VaultStrategies} from "./VaultStrategies.sol";
-import {
-    MessagingReceipt
-} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {VaultManager} from "./VaultManager.sol";
 import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
 
-import {
-    OApp,
-    Origin,
-    MessagingFee
-} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
 contract VaultRegistry is Ownable, OApp {
     address _endpoint;
@@ -44,17 +27,11 @@ contract VaultRegistry is Ownable, OApp {
     mapping(address => VaultHelper.AvenorUser) avenorUsers;
     mapping(address => VaultHelper.AvenorCreator) avenorCreators;
 
-    constructor(
-        address __endpoint,
-        address __delegate
-    ) Ownable(__delegate) OApp(__endpoint, __delegate) {
+    constructor(address __endpoint, address __delegate) Ownable(__delegate) OApp(__endpoint, __delegate) {
         authrizedCallers.push(_delegate); //this authorized user should be the one we use in api
     }
 
-    function addUser(
-        address _userAddr,
-        VaultHelper.AvenorUser memory _newUser
-    ) public {
+    function addUser(address _userAddr, VaultHelper.AvenorUser memory _newUser) public {
         avenorUsers[_userAddr] = _newUser;
     }
 
@@ -63,15 +40,11 @@ contract VaultRegistry is Ownable, OApp {
         avenorCreators[msg.sender] = creator;
     }
 
-    function getCreator(
-        address creator
-    ) public returns (VaultHelper.AvenorCreator memory) {
+    function getCreator(address creator) public returns (VaultHelper.AvenorCreator memory) {
         return avenorCreators[creator];
     }
 
-    function getUser(
-        address _user
-    ) public view returns (VaultHelper.AvenorUser memory) {
+    function getUser(address _user) public view returns (VaultHelper.AvenorUser memory) {
         return avenorUsers[_user];
     }
 
@@ -92,53 +65,32 @@ contract VaultRegistry is Ownable, OApp {
         VaultAssets.feeReceiversInfo memory _feeRecievers
     ) public {
         VaultManager vaultDpeloyed = new VaultManager(
-            _authorizedVip,
-            vaultName,
-            vaultTicker,
-            _vaultAsset,
-            _creator,
-            vaultEndpoint,
-            _fees,
-            _feeRecievers
+            _authorizedVip, vaultName, vaultTicker, _vaultAsset, _creator, vaultEndpoint, _fees, _feeRecievers
         );
-        VaultFactory convertedVault = VaultFactory(
-            payable(address(vaultDpeloyed))
-        );
+        VaultFactory convertedVault = VaultFactory(payable(address(vaultDpeloyed)));
         setDeployedVaults(deployer, convertedVault);
     }
 
-    function deployMultiChainVault(
-        VaultHelper.BulkVaultDeployments[] memory deploymentQuotes
-    ) public {
+    function deployMultiChainVault(VaultHelper.BulkVaultDeployments[] memory deploymentQuotes) public {
         for (uint256 i = 0; i < deploymentQuotes.length - 1; i++) {
-            VaultHelper.BulkVaultDeployments
-                memory currentTarget = deploymentQuotes[i];
+            VaultHelper.BulkVaultDeployments memory currentTarget = deploymentQuotes[i];
 
-            textRegistry(
-                currentTarget._dstEid,
-                currentTarget.message,
-                currentTarget.fee,
-                currentTarget.refundAddress
-            );
+            textRegistry(currentTarget._dstEid, currentTarget.message, currentTarget.fee, currentTarget.refundAddress);
         }
     }
 
-    function textRegistry(
-        uint32 _dstEid,
-        bytes memory _message,
-        MessagingFee memory _fee,
-        address _refundAddress
-    ) public payable {
+    function textRegistry(uint32 _dstEid, bytes memory _message, MessagingFee memory _fee, address _refundAddress)
+        public
+        payable
+    {
         _lzSend(_dstEid, _message, options, _fee, _refundAddress);
     }
 
     function getMultiChainDpeloymentQuote() public {} //work on this tn almost done with registry
     bool payInLz = false;
     bytes options = bytes(""); //options we should througholy preconfigure o vaults get gas to do stuff
-    function getMessageQuote(
-        uint32 _dstEid,
-        bytes memory _message
-    ) public view returns (MessagingFee memory) {
+
+    function getMessageQuote(uint32 _dstEid, bytes memory _message) public view returns (MessagingFee memory) {
         MessagingFee memory fee = _quote(_dstEid, _message, options, false);
         return fee;
     }
@@ -149,18 +101,32 @@ contract VaultRegistry is Ownable, OApp {
         _setPeer(eid, _registry); //each peer should be vault registry on every chain
     }
 
-    function mcVaultDeployment() public {}
+    function vaultDeposit() public payable returns (bool) {
+        return true;
+    }
+
+    function vaultWithdraw() public {}
 
     function setOnlyCaller() public {}
 
     function verifyOnlyCaller() public {}
+
     function _lzReceive(
-        Origin calldata _origin,
-        bytes32 _guid,
+        Origin calldata,
+        /*_origin*/
+        bytes32,
+        /*_guid*/
         bytes calldata _message,
-        address _executor,
-        bytes calldata _extraData
-    ) internal override {
+        address,
+        /**
+         * _executor
+         */
+        bytes calldata //_extraData
+    )
+        internal
+        override
+    {
         // handle incoming LayerZero message
+        address(this).call(_message);
     }
 }
