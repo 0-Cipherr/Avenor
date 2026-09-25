@@ -14,6 +14,7 @@ import {StrategyHelper} from "./StrategyHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
 import {VaultStrategies} from "./VaultStrategies.sol";
 import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
 
 contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
     address creator;

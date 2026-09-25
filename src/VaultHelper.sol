@@ -1,27 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
-import {
-    OApp,
-    Origin,
-    MessagingFee
-} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 library VaultHelper {
-    event Deposit(
-        address indexed caller,
-        address indexed receiver,
-        uint256 assets,
-        uint256 shares
-    );
+    event Deposit(address indexed caller, address indexed receiver, uint256 assets, uint256 shares);
 
     event VaultWithdraw(
-        address indexed caller,
-        address indexed receiver,
-        address indexed owner,
-        uint256 assets,
-        uint256 shares
+        address indexed caller, address indexed receiver, address indexed owner, uint256 assets, uint256 shares
     );
 
     event StrategyAdded(address indexed strategy);

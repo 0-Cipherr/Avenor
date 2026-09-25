@@ -12,6 +12,7 @@ contract VaultAssets is ERC4626 {
     uint256 protocolFee;
     uint256 creatorFee;
     uint256 _idleAssets;
+    IERC20 asset;
 
     struct feeReceiversInfo {
         address protocolFee;
@@ -38,6 +39,7 @@ contract VaultAssets is ERC4626 {
     ) ERC20(_name, _ticker) ERC4626(_asset) {
         feeRecievers = _recievers;
         fees = feeInfo;
+        asset = _asset;
     }
 
     function getFeeRecievers() public view returns (feeReceiversInfo memory) {
@@ -136,6 +138,11 @@ contract VaultAssets is ERC4626 {
         (uint256 _total,,) = calculateFees(assetsToRecieve);
         _assets = _total;
         //previewRedeem() answers the opposite question: "If I burn this many shares, how many assets will I receive?"
+    }
+
+    function verifyAssetApproval(address _user, uint256 _amount) public view returns (bool) {
+        uint256 allowance = asset.allowance(_user, address(this));
+        return allowance > _amount;
     }
 
     function flush(address reciever, uint256 _amount) public returns (bool) {
