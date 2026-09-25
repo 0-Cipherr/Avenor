@@ -77,9 +77,10 @@ library VaultHelper {
         address creator;
         uint256 tvl;
         uint256 allTimeVolume;
+        VaultFactory vault;
         string name;
         string ticker;
-        IERC20 depoitAsset;
+        IERC20 depositAsset;
         address[] authorized;
     }
 }
