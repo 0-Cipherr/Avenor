@@ -1,21 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
-import {IVaultManager} from "./IVaultManager.sol";
+import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
+import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 library VaultHelper {
-    event Deposit(
-        address indexed caller,
-        address indexed receiver,
-        uint256 assets,
-        uint256 shares
-    );
+    event Deposit(address indexed caller, address indexed receiver, uint256 assets, uint256 shares);
 
     event VaultWithdraw(
-        address indexed caller,
-        address indexed receiver,
-        address indexed owner,
-        uint256 assets,
-        uint256 shares
+        address indexed caller, address indexed receiver, address indexed owner, uint256 assets, uint256 shares
     );
 
     event StrategyAdded(address indexed strategy);
@@ -39,21 +32,42 @@ library VaultHelper {
         uint256 lastReportedAssets;
     }
 
+    struct BulkVaultDeployments {
+        MessagingFee fee;
+        uint32 _dstEid;
+        bytes vaultConstructorParams; //encdoed then decoded
+        bytes message;
+        address refundAddress;
+    }
+    //too much values wemust compress our data for gas efficieny
+
     struct AvenorUser {
         address _userAdr;
         uint256 _accountCreatedAt;
         uint256 numVaultsCreated;
         uint256 _feesEarned;
         uint256 _totalVolume;
-    }
-
-    struct AvenorCreator {
-        address creatorAddress;
         uint256 _vaulteVolumesTotal;
-        IVaultManager[] vaultsDpeloyed;
+        VaultFactory[] vaultsDeployed;
     }
 
-    struct VaultDeployParams{}{
-        address dpeloyer; 
+    struct VaultDeployParams {
+        address dpeloyer;
+    }
+
+    struct RegistryPeer {
+        address _endpoint;
+        uint32 endpointId;
+    }
+
+    struct Vault {
+        address creator;
+        uint256 tvl;
+        uint256 allTimeVolume;
+        VaultFactory vault;
+        string name;
+        string ticker;
+        IERC20 depositAsset;
+        address[] authorized;
     }
 }

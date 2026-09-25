@@ -14,12 +14,21 @@ import {StrategyHelper} from "./StrategyHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
 import {VaultStrategies} from "./VaultStrategies.sol";
 import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
 
 contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
     address creator;
     address[] authorizedVip;
 
     IERC20 vaultAsset;
+
+    struct Status {
+        //use this on deposit if strategy is live we check this struct to verify and if its on other chain we bridge
+        bool strategyActive;
+        uint32 endpointId;
+        address endpoint;
+        uint256 strategyId;
+    }
 
     constructor(
         address[] memory _authorizedVip,
@@ -73,6 +82,7 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
     function crossChainDeposit(uint32 _dstEid, uint256 assets, address receiver) public {}
 
     function depositAssets(uint256 assets, address receiver) public returns (uint256 _shares) {
+        //use status check here
         _shares = convertToShares(assets);
         bool successfulTransfer = vaultAsset.transferFrom(receiver, msg.sender, assets); //must be approved
         require(successfulTransfer, "Transfer did not go through check approvals;");
