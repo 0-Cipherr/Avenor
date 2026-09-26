@@ -18,17 +18,55 @@ contract VaultRegistryTest is Test {
 
     function run() public {
         vm.startBroadcast();
+        address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
+
+        address delegate = msg.sender;
+        deployRegistry(endpoint, delegate);
 
         vm.stopBroadcast();
     }
 
+    //deploy on two chains
     function deployRegistry(address _endpoint, address _delegate) public {
         registry = new VaultRegistry(_endpoint, _delegate);
     }
 
-    function simulateVaultDeployment() public {}
+    function addPeer(address endopoint, bytes32 vault) public {}
 
-    function simulateRegistrDeposit() public {}
+    //simulate multichain vault
+    function simulateHubVaultDeployment() public {
+        bytes memory params = abi.encode(""); //constructor params
+        registry.deployHubVault(params);
+    }
 
-    function simulateRegistryWithdraw() public {}
+    // (
+    //         address deployer,
+    //         address[] memory _authorizedVip,
+    //         string memory vaultName,
+    //         string memory vaultTicker,
+    //         IERC20 _vaultAsset,
+    //         address _creator,
+    //         address vaultEndpoint,
+    //         VaultAssets.FeesInfo memory _fees,
+    //         VaultAssets.feeReceiversInfo memory _feeRecievers
+    //     )
+    function getMultichainDpeloyQuote(bytes[] memory messages, uint32[] memory dstEids)
+        public
+        returns (VaultHelper.BulkVaultDeployments[] memory quotes)
+    {
+        quotes = registry.getMultiChainDpeloymentQuote(msg.sender, messages, dstEids);
+    }
+
+    function simulateRegistrDeposit(uint256 vaultId, address _user, uint256 _amountAssets) public {
+        registry.deposit(_user, vaultId, _amountAssets, _user);
+    }
+
+    function getUserInfo() public view {}
+
+    function getVaultInfo() public view {}
+
+    //must quote first beofre peroforming
+    function simulateRegistryWithdraw(uint256 vaultId, uint256 shares, address reciever) public {
+        registry.vaultWithdraw(vaultId, shares, reciever);
+    }
 }
