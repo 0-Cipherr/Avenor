@@ -92,7 +92,23 @@ contract VaultRegistry is Ownable, OApp, VaultRegistryManager {
         _lzSend(_dstEid, _message, options, _fee, _refundAddress);
     }
 
-    function getMultiChainDpeloymentQuote() public {} //work on this tn almost done with registry
+    function getMultiChainDpeloymentQuote(address _user, bytes[] memory messages, uint32[] memory _dstEids)
+        public
+        view
+        returns (VaultHelper.BulkVaultDeployments[] memory deployments)
+    {
+        bool matchesLength = messages.length == _dstEids.length;
+        require(matchesLength, "Cannot iterate no matching arrays");
+
+        for (uint256 i = 0; i < _dstEids.length; i++) {
+            MessagingFee memory currentQuote = getMessageQuote(_dstEids[i], messages[i]);
+            VaultHelper.BulkVaultDeployments memory deploymentQuote =
+                VaultHelper.BulkVaultDeployments(currentQuote, _dstEids[i], messages[i], messages[i], _user);
+            deployments[i] = (deploymentQuote);
+        }
+    } //work on this tn almost done with registry
+
+    function verifyPeerExistence() public {}
     bool payInLz = false;
     bytes options = bytes(""); //options we should througholy preconfigure o vaults get gas to do stuff
 
