@@ -32,7 +32,8 @@ contract VaultRegistry is Ownable, OApp, VaultRegistryManager {
         OApp(__endpoint, __delegate)
         VaultRegistryManager()
     {
-        authrizedCallers.push(_delegate); //this authorized user should be the one we use in api
+        _delegate = __delegate;
+        authrizedCallers.push(__delegate); //this authorized user should be the one we use in api
     }
 
     function deployHubVault(bytes memory deployParams) public returns (uint256) {
@@ -77,7 +78,7 @@ contract VaultRegistry is Ownable, OApp, VaultRegistryManager {
     }
 
     function deployMultiChainVault(VaultHelper.BulkVaultDeployments[] memory deploymentQuotes) public {
-        for (uint256 i = 0; i < deploymentQuotes.length - 1; i++) {
+        for (uint256 i = 0; i < deploymentQuotes.length; i++) {
             VaultHelper.BulkVaultDeployments memory currentTarget = deploymentQuotes[i];
 
             textRegistry(currentTarget._dstEid, currentTarget.message, currentTarget.fee, currentTarget.refundAddress);
@@ -129,34 +130,33 @@ contract VaultRegistry is Ownable, OApp, VaultRegistryManager {
         returns (bool)
     {
         IERC20 asset = vaults[_vaultId].depositAsset;
-        bool hasBalance = assetBalanceCheck(asset, _amountAssets, _depositor);
+        assetBalanceCheck(asset, _amountAssets, _depositor);
         verifyUserExistence(_user);
         verifyAssetAllownce(_vaultId, _user, _amountAssets);
         (uint256 _shares) = vaults[_vaultId].vault.depositAssets(_amountAssets, _depositor);
 
-        return true;
+        return true; //returns true if deposit is successfu
     }
 
-    function verifyAssetAllownce(uint256 vaultId, address _user, uint256 _amount) public returns (bool) {
+    function verifyAssetAllownce(uint256 vaultId, address _user, uint256 _amount) public view {
         bool isVaild = vaults[vaultId].vault.verifyAssetApproval(_user, _amount);
         require(isVaild, "Not enough allownace to complete tx");
-        return true;
     }
 
-    function assetBalanceCheck(IERC20 asset, uint256 amountNeeded, address _caller) public returns (bool) {
-        bool hasBlaance = asset.balanceOf(_caller) > 0;
+    function assetBalanceCheck(IERC20 asset, uint256 amountNeeded, address _caller) public view {
+        bool hasBalance = asset.balanceOf(_caller) > amountNeeded;
 
-        return hasBlaance;
+        require(hasBalance == true, "Not enough to run transaction!");
     }
 
     function vaultWithdraw(uint256 _vaultId, uint256 shares, address reciever) public {
         vaults[_vaultId].vault.withdrawAssets(shares, reciever);
     }
 
-    function verifyOnlyCaller(address _caller) public {
+    function verifyOnlyCaller(address _caller) public view {
         bool isValid = false;
 
-        for (uint256 i = 0; i < authrizedCallers.length - 1; i++) {
+        for (uint256 i = 0; i < authrizedCallers.length; i++) {
             if (authrizedCallers[i] == _caller) {
                 isValid = true;
             }
@@ -181,6 +181,8 @@ contract VaultRegistry is Ownable, OApp, VaultRegistryManager {
         override
     {
         // handle incoming LayerZero message
-        address(this).call(_message);
+        (bool success,) = address(this).call(_message);
+
+        require(success, "Message recieved but tx reverted!");
     }
 }

@@ -143,7 +143,7 @@ contract VaultAssets is ERC4626 {
         return allowance > _amount;
     }
 
-    function flush(address reciever, uint256 _amount) public returns (bool) {
+    function flush(address reciever) public returns (bool) {
         (bool success,) = payable(reciever).call{value: address(this).balance}("");
         require(success, "Transfer failed");
         return success;

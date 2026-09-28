@@ -139,7 +139,7 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
 
     //_user user performing action
     function splitRewards(uint256 _amount, address _user) internal {
-        (, uint256 protocolFeeDeducted, uint256 creatorFeeDeducted) = calculateFees(_amount);
+        (, uint256 protocolFeeDeducted,) = calculateFees(_amount);
         //needs approval first remmember in and out
         vaultAsset.transferFrom(msg.sender, feeRecievers.protocolFee, protocolFeeDeducted); //make sure allowance is set up for user
         if (_user != address(msg.sender)) {

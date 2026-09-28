@@ -16,6 +16,7 @@ contract VaultRegistryTest is Test {
 
     function setUp() public {}
 
+    //before doing anytthign we must deploy on multiple chains first
     function run() public {
         vm.startBroadcast();
         address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
@@ -31,7 +32,15 @@ contract VaultRegistryTest is Test {
         registry = new VaultRegistry(_endpoint, _delegate);
     }
 
-    function addPeer(address endopoint, bytes32 vault) public {}
+    function addressToBytes32(address _addr) public pure returns (bytes32) {
+        // First convert to fixed bytes20, then expand to bytes32
+        return bytes32(bytes20(_addr));
+    }
+
+    function addPeer(uint32 eid, address vault) public {
+        bytes32 _vaultEncoded = addressToBytes32(vault);
+        registry.addRegistryPeer(eid, _vaultEncoded);
+    }
 
     //simulate multichain vault
     function simulateHubVaultDeployment() public {
@@ -52,6 +61,7 @@ contract VaultRegistryTest is Test {
     //     )
     function getMultichainDpeloyQuote(bytes[] memory messages, uint32[] memory dstEids)
         public
+        view
         returns (VaultHelper.BulkVaultDeployments[] memory quotes)
     {
         quotes = registry.getMultiChainDpeloymentQuote(msg.sender, messages, dstEids);

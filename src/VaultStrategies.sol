@@ -45,8 +45,4 @@ contract VaultStrategies {
         public
         returns (uint256 currentAssets, int256 profitOrLoss)
     {}
-
-    function flush(address reciever) public {
-        payable(reciever).call{value: address(this).balance}("");
-    }
 }

@@ -68,9 +68,9 @@ contract VaultRegistryManager {
         return avenorUsers[_user];
     }
 
-    function setDeployedVaults(address deployer, VaultFactory vaults) public {
+    function setDeployedVaults(address deployer, VaultFactory _vault) public {
         require(deployer == address(msg.sender), "Deployer must be caller!");
-        avenorUsers[deployer].vaultsDeployed.push(vaults);
+        avenorUsers[deployer].vaultsDeployed.push(_vault);
     }
 
     function updateVaultsCreated() public {}
