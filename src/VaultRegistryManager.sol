@@ -38,6 +38,10 @@ contract VaultRegistryManager {
         currentId++;
         return vaultId;
     }
+
+    function getVault(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
+        return vaults[vaultId];
+    }
     // struct Vault {
     //     address creator;
     //     uint256 tvl;
@@ -71,6 +75,7 @@ contract VaultRegistryManager {
     function setDeployedVaults(address deployer, VaultFactory _vault) public {
         require(deployer == address(msg.sender), "Deployer must be caller!");
         avenorUsers[deployer].vaultsDeployed.push(_vault);
+        //IVaultManager stored in struct array
     }
 
     function updateVaultsCreated() public {}

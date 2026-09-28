@@ -50,7 +50,8 @@ contract VaultRegistryTest is Test {
     function simulateHubVaultDeployment() public {
         VaultHelper.VaultDeployParams memory deployParams = generateeConstructorParams();
         bytes memory params = abi.encode(deployParams); //constructor params
-        registry.deployHubVault(params);
+        uint256 deployedVaultId = registry.deployHubVault(params);
+        getVaultInfo(deployedVaultId);
     }
 
     function generateeConstructorParams() public view returns (VaultHelper.VaultDeployParams memory vaultDeployParams) {
@@ -84,7 +85,17 @@ contract VaultRegistryTest is Test {
 
     function getUserInfo() public view {}
 
-    function getVaultInfo() public view {}
+    function getVaultInfo(uint256 _vaultId) public view returns (VaultHelper.Vault memory info) {
+        info = registry.getVault(_vaultId);
+
+        console.log("creator:", info.creator);
+        console.log("tvl:", info.tvl);
+        console.log("allTimeVolume:", info.allTimeVolume);
+        console.log("vault:", address(info.vault));
+        console.log("name:", info.name);
+        console.log("ticker:", info.ticker);
+        console.log("depositAsset:", address(info.depositAsset));
+    }
 
     //must quote first beofre peroforming
     function simulateRegistryWithdraw(uint256 vaultId, uint256 shares, address receiver) public {
