@@ -30,25 +30,22 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
         uint256 strategyId;
     }
 
-    constructor(
-        address[] memory _authorizedVip,
-        string memory vaultName,
-        string memory vaultTicker,
-        IERC20 _vaultAsset,
-        address _creator,
-        address _endpoint,
-        FeesInfo memory _fees,
-        feeReceiversInfo memory _feeRecievers
-    )
-        Ownable(_creator)
-        OApp(_endpoint, _creator)
-        VaultAssets(vaultName, vaultTicker, _vaultAsset, _fees, _feeRecievers)
+    constructor(VaultHelper.VaultDeployParams memory _deployParams)
+        Ownable(_deployParams.creator)
+        OApp(_deployParams.vaultEndpoint, _deployParams.creator)
+        VaultAssets(
+            _deployParams.vaultName,
+            _deployParams.vaultTicker,
+            _deployParams.vaultAsset,
+            _deployParams.fees,
+            _deployParams.feeReceivers
+        )
         VaultStrategies()
     {
-        _authorizedVip = authorizedVip;
+        authorizedVip = _deployParams.authorizedVip;
 
-        vaultAsset = _vaultAsset;
-        creator = _creator;
+        vaultAsset = _deployParams.vaultAsset;
+        creator = _deployParams.creator;
     }
 
     mapping(address => VaultHelper.DepositorInfo) depositors;

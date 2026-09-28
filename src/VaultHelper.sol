@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {VaultAssets} from "./VaultAssets.sol";
 
 library VaultHelper {
     event Deposit(address indexed caller, address indexed receiver, uint256 assets, uint256 shares);
@@ -18,6 +19,18 @@ library VaultHelper {
     event CapitalDeployed(address indexed strategy, uint256 assets);
 
     event CapitalReturned(address indexed strategy, uint256 assets);
+
+    struct VaultDeployParams {
+        address deployer;
+        address[] authorizedVip;
+        string vaultName;
+        string vaultTicker;
+        IERC20 vaultAsset;
+        address creator;
+        address vaultEndpoint;
+        VaultAssets.FeesInfo fees;
+        VaultAssets.feeReceiversInfo feeReceivers;
+    }
 
     struct DepositorInfo {
         address depositor;
@@ -49,10 +62,6 @@ library VaultHelper {
         uint256 _totalVolume;
         uint256 _vaulteVolumesTotal;
         VaultFactory[] vaultsDeployed;
-    }
-
-    struct VaultDeployParams {
-        address dpeloyer;
     }
 
     struct RegistryPeer {
