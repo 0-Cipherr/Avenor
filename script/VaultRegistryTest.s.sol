@@ -80,8 +80,8 @@ contract VaultRegistryTest is Test {
     function simulateRegistryWithdraw(
         uint256 vaultId,
         uint256 shares,
-        address reciever
+        address receiver
     ) public {
-        registry.vaultWithdraw(vaultId, shares, reciever);
+        registry.vaultWithdraw(vaultId, shares, receiver);
     }
 }
