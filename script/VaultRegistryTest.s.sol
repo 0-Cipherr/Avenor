@@ -32,14 +32,8 @@ contract VaultRegistryTest is Test {
         registry = new VaultRegistry(_endpoint, _delegate);
     }
 
-    function addressToBytes32(address _addr) public pure returns (bytes32) {
-        // First convert to fixed bytes20, then expand to bytes32
-        return bytes32(bytes20(_addr));
-    }
-
     function addPeer(uint32 eid, address vault) public {
-        bytes32 _vaultEncoded = addressToBytes32(vault);
-        registry.addRegistryPeer(eid, _vaultEncoded);
+        registry.addRegistryPeer(eid, vault);
     }
 
     //simulate multichain vault
@@ -59,15 +53,22 @@ contract VaultRegistryTest is Test {
     //         VaultAssets.FeesInfo memory _fees,
     //         VaultAssets.feeReceiversInfo memory _feeRecievers
     //     )
-    function getMultichainDpeloyQuote(bytes[] memory messages, uint32[] memory dstEids)
-        public
-        view
-        returns (VaultHelper.BulkVaultDeployments[] memory quotes)
-    {
-        quotes = registry.getMultiChainDpeloymentQuote(msg.sender, messages, dstEids);
+    function getMultichainDpeloyQuote(
+        bytes[] memory messages,
+        uint32[] memory dstEids
+    ) public view returns (VaultHelper.BulkVaultDeployments[] memory quotes) {
+        quotes = registry.getMultiChainDpeloymentQuote(
+            msg.sender,
+            messages,
+            dstEids
+        );
     }
 
-    function simulateRegistrDeposit(uint256 vaultId, address _user, uint256 _amountAssets) public {
+    function simulateRegistrDeposit(
+        uint256 vaultId,
+        address _user,
+        uint256 _amountAssets
+    ) public {
         registry.deposit(_user, vaultId, _amountAssets, _user);
     }
 
@@ -76,7 +77,11 @@ contract VaultRegistryTest is Test {
     function getVaultInfo() public view {}
 
     //must quote first beofre peroforming
-    function simulateRegistryWithdraw(uint256 vaultId, uint256 shares, address reciever) public {
+    function simulateRegistryWithdraw(
+        uint256 vaultId,
+        uint256 shares,
+        address reciever
+    ) public {
         registry.vaultWithdraw(vaultId, shares, reciever);
     }
 }
