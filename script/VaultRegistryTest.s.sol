@@ -48,15 +48,28 @@ contract VaultRegistryTest is Test {
 
     //simulate multichain vault
     function simulateHubVaultDeployment() public {
-        VaultHelper.VaultDeployParams memory deployParams = generateeConstructorParams();
+        VaultHelper.VaultDeployParams
+            memory deployParams = generateeConstructorParams();
         bytes memory params = abi.encode(deployParams); //constructor params
         uint256 deployedVaultId = registry.deployHubVault(params);
         getVaultInfo(deployedVaultId);
     }
 
-    function generateeConstructorParams() public view returns (VaultHelper.VaultDeployParams memory vaultDeployParams) {
+    function generateeConstructorParams()
+        public
+        view
+        returns (VaultHelper.VaultDeployParams memory vaultDeployParams)
+    {
         vaultDeployParams = VaultHelper.VaultDeployParams(
-            msg.sender, authorizedVip, vaultName, vaultTIcker, vaultAsset, msg.sender, endpoint, fees, feeRecievers
+            msg.sender,
+            authorizedVip,
+            vaultName,
+            vaultTIcker,
+            vaultAsset,
+            msg.sender,
+            endpoint,
+            fees,
+            feeRecievers
         );
     }
 
@@ -71,21 +84,30 @@ contract VaultRegistryTest is Test {
     //         VaultAssets.FeesInfo memory _fees,
     //         VaultAssets.feeReceiversInfo memory _feeRecievers
     //     )
-    function getMultichainDeployQuote(bytes[] memory messages, uint32[] memory dstEids)
-        public
-        view
-        returns (VaultHelper.BulkVaultDeployments[] memory quotes)
-    {
-        quotes = registry.getMultiChainDpeloymentQuote(msg.sender, messages, dstEids);
+    function getMultichainDeployQuote(
+        bytes[] memory messages,
+        uint32[] memory dstEids
+    ) public view returns (VaultHelper.BulkVaultDeployments[] memory quotes) {
+        quotes = registry.getMultiChainDpeloymentQuote(
+            msg.sender,
+            messages,
+            dstEids
+        );
     }
 
-    function simulateRegistryDeposit(uint256 vaultId, address _user, uint256 _amountAssets) public {
+    function simulateRegistryDeposit(
+        uint256 vaultId,
+        address _user,
+        uint256 _amountAssets
+    ) public {
         registry.deposit(_user, vaultId, _amountAssets, _user);
     }
 
     function getUserInfo() public view {}
 
-    function getVaultInfo(uint256 _vaultId) public view returns (VaultHelper.Vault memory info) {
+    function getVaultInfo(
+        uint256 _vaultId
+    ) public view returns (VaultHelper.Vault memory info) {
         info = registry.getVault(_vaultId);
 
         console.log("creator:", info.creator);
@@ -98,7 +120,11 @@ contract VaultRegistryTest is Test {
     }
 
     //must quote first beofre peroforming
-    function simulateRegistryWithdraw(uint256 vaultId, uint256 shares, address receiver) public {
+    function simulateRegistryWithdraw(
+        uint256 vaultId,
+        uint256 shares,
+        address receiver
+    ) public {
         registry.vaultWithdraw(vaultId, shares, receiver);
     }
 }
