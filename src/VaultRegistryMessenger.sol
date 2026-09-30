@@ -17,6 +17,8 @@ contract VaultRegistryMessenger is Ownable, OApp {
     address vaultRegistry; //should be vault registr interface not address for now
     bool PAYINLZTOKEN = false;
 
+    VaultHelper.Destination[] public destinations;
+
     //already a endpoitn and delegate variables in oapp incae we need them
     constructor(
         address _endpoint,
@@ -37,6 +39,33 @@ contract VaultRegistryMessenger is Ownable, OApp {
             _composedMessage._fee,
             _composedMessage._refundAddress
         );
+    }
+
+    function crossChainDeployVaults() public {}
+
+    function validateCrossChainDestinations(
+        MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
+    ) public view returns (bool) {
+        bool isValid = false;
+
+        for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {}
+    }
+
+    function crossChainDeployTextQuote(
+        MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
+    )
+        public
+        returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
+    {
+        for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {
+            MessagingHelper.ComposedMessageQuote
+                memory currentMessage = _quoteParamsCollection[i];
+            MessagingHelper.ComposedMessage memory quote = textQuote(
+                currentMessage
+            );
+
+            _composedMessage[i] = (quote);
+        }
     }
 
     function textQuote(
@@ -95,18 +124,6 @@ contract VaultRegistryMessenger is Ownable, OApp {
      * Options are how applications communicate verification and execution preferences to the off-chain workers that carry out crosschain messages.
      */
     function createOptions() public returns (bytes memory) {} //create proper options for vaults so messages are sent properly
-
-    function textVault(
-        MessagingHelper.ComposedMessage memory composedMessage
-    ) public {
-        _lzSend(
-            composedMessage._dstEid,
-            composedMessage._message,
-            composedMessage._options,
-            composedMessage._fee,
-            composedMessage._refundAddress
-        );
-    }
 
     function _lzReceive(
         Origin calldata,
