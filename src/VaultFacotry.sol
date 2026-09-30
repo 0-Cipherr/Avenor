@@ -10,6 +10,10 @@ contract VaultFactory is Ownable {
     uint256 currentVaultId;
     address authroized;
     address vaultRegistry;
+    uint256 changeOwnerMax = 3;
+
+    mapping(address => uint256) changeOwnerChances;
+    mapping(uint256 => VaultHelper.Vault) vaultsDeployed;
 
     //authorized shold only be the registry
     constructor(address _delegate, address _authorized) Ownable(_delegate) {
@@ -21,32 +25,22 @@ contract VaultFactory is Ownable {
         require(attemptedUser == authroized, "Not authrized to perform ");
         _;
     }
-    mapping(uint256 => VaultHelper.Vault) vaultsDeployed;
 
-    function setVault(
-        address _vaultRegistry
-    ) public onlyAUhtorized(msg.sender) {
+    function setVault(address _vaultRegistry) public onlyAUhtorized(msg.sender) {
         vaultRegistry = _vaultRegistry;
     }
 
-    function setVaultsDeployed(
-        uint256 vaultId,
-        VaultHelper.Vault memory vaultInfo
-    ) public onlyAUhtorized(msg.sender) {
+    function setVaultsDeployed(uint256 vaultId, VaultHelper.Vault memory vaultInfo) public onlyAUhtorized(msg.sender) {
         vaultsDeployed[vaultId] = vaultInfo;
     }
 
-    function deployVault(
-        bytes memory deployVaultParams
-    )
+    function deployVault(bytes memory deployVaultParams)
         public
         onlyAUhtorized(msg.sender)
         returns (uint256 vaultId, IVaultManager vaultDeployed)
     {
-        (VaultHelper.VaultDeployParams memory deployParams) = abi.decode(
-            deployVaultParams,
-            (VaultHelper.VaultDeployParams)
-        );
+        (VaultHelper.VaultDeployParams memory deployParams) =
+            abi.decode(deployVaultParams, (VaultHelper.VaultDeployParams));
         VaultManager vault = new VaultManager(deployParams);
 
         vaultDeployed = IVaultManager(address(vault));
@@ -81,23 +75,28 @@ contract VaultFactory is Ownable {
     function increaseVaultId() public onlyAUhtorized(msg.sender) {
         ++currentVaultId;
     }
-    function removePeer() public onlyAUhtorized(msg.sender) {}
 
-    function getvault(
-        uint256 vaultId
-    )
-        public
-        view
-        onlyAUhtorized(msg.sender)
-        returns (VaultHelper.Vault memory vault)
-    {
+    function getvault(uint256 vaultId) public view onlyAUhtorized(msg.sender) returns (VaultHelper.Vault memory vault) {
         vault = vaultsDeployed[vaultId];
     }
 
-    function stopVault() public onlyAUhtorized(msg.sender) {}
+    function verifyChances(address _owner) public onlyAUhtorized(msg.sender) {
+        uint256 chance = getOwnerChangeChances(_owner);
+        require(chance < changeOwnerMax, "You ran out of vault owner canges ");
+    } //emergency use case one time use
 
-    //flushes vault and returns funds to users immediatley this happens when vault is paused stopped or any sort of hack
-    function SOSVault() public onlyAUhtorized(msg.sender) {}
+    function changeVaultOwner(uint256 vaultId) public onlyAUhtorized(msg.sender) {
+        VaultHelper.Vault memory userVault = vaultsDeployed[vaultId];
+        incrementChangeOwnerChances(userVault.creator);
+    }
+
+    function getOwnerChangeChances(address _owner) public view onlyAUhtorized(msg.sender) returns (uint256) {
+        return changeOwnerChances[_owner];
+    }
+
+    function incrementChangeOwnerChances(address _owner) public onlyAUhtorized(msg.sender) {
+        changeOwnerChances[_owner] += 1;
+    }
 }
 // initializeVault()
 // configureVault()
