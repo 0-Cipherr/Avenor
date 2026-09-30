@@ -76,7 +76,7 @@ contract TempVaultRegistry is Ownable {
     }
 
     function deployVault(address _owner, bytes memory deployParams) public returns (uint256) {
-        (uint256 vaultCreatedId, IVaultManager vaultDeployed) = factory.deployVault(deployParams);
+        (uint256 vaultCreatedId, IVaultManager vault) = factory.deployVault(deployParams);
 
         messenger.registerOapp(_owner, vaultCreatedId);
 
@@ -90,7 +90,9 @@ contract TempVaultRegistry is Ownable {
     }
 
     function deployVaults(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {
-        bool deployed = messenger.bulk(vaultId, _composedMessages);
+        bool deployed = messenger.bulkText(vaultId, _composedMessages);
+
+        require(deployed, "Cannot dpeloy vaults multichain");
     }
 
     function recieveText(bytes memory _text) public {

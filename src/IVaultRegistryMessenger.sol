@@ -39,4 +39,6 @@ interface IVaultRegistryMessenger {
     ) external pure returns (MessagingHelper.ComposedMessage memory composedMessage);
 
     function createOptions() external returns (bytes memory);
+
+    function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _quoteParams) external returns (bool);
 }

@@ -44,4 +44,6 @@ interface IVaultRegistry {
     function vaultWithdraw(uint256 vaultId, uint256 shares, address receiver) external;
 
     function verifyOnlyCaller(address caller) external view;
+
+    function recieveText(bytes memory _text) external;
 }

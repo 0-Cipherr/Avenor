@@ -68,7 +68,9 @@ contract VaultRegistryMessenger is Ownable, OApp {
 
     function recieveDeploymentText(bytes memory message) public {}
 
-    function textToRegistry() public {}
+    function textToRegistry(bytes memory text) public {
+        vaultRegistry.recieveText(text);
+    }
 
     function textQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
         public
@@ -80,6 +82,15 @@ contract VaultRegistryMessenger is Ownable, OApp {
         MessagingHelper.ComposedMessage memory fee = deployedOApps[vaultId].oapp.quoteText(_quoteParams);
 
         composedMessage = fee;
+    }
+
+    function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _quoteParams) public returns (bool) {
+        for (uint256 i = 0; i < _quoteParams.length; i++) {
+            MessagingHelper.ComposedMessage memory _currentQuote;
+            textVault(vaultId, _currentQuote);
+        }
+
+        return true;
     }
 
     //duplicate fucntion in VaultOApp

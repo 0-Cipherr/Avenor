@@ -73,15 +73,6 @@ contract VaultFactory is Ownable {
         increaseVaultId();
     }
 
-    function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages)
-        public
-        view
-        onlyAUhtorized(msg.sender)
-        returns (bool)
-    {
-        return true;
-    }
-
     function increaseVaultId() public onlyAUhtorized(msg.sender) {
         ++currentVaultId;
     }
