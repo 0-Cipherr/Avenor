@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
-import {OApp, Origin, MessagingFee, MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
 library MessagingHelper {
     struct ComposedMessage {
@@ -10,5 +10,11 @@ library MessagingHelper {
         bytes _options;
         bool payInLzToken;
         address _refundAddress;
+    }
+
+    struct ComposedMessageQuote {
+        uint32 _dstEid;
+        bytes _message;
+        address refundAddress;
     }
 }

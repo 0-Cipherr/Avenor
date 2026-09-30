@@ -9,10 +9,15 @@ contract VaultFactory is Ownable {
     //accounting hld in the manager
     uint256 currentVaultId;
     address authroized;
+    address vaultRegistry;
 
     constructor(address _delegate, address _authorized) Ownable(_delegate) {
         currentVaultId = 0;
         authroized = _authorized;
+    }
+
+    function setVault(address _vaultRegistry) public {
+        vaultRegistry = _vaultRegistry;
     }
 
     function deployVault(bytes memory deployVaultParams) public returns (uint256 vaultId, IVaultManager vaultDeployed) {
