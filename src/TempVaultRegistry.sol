@@ -23,6 +23,7 @@ contract TempVaultRegistry is Ownable {
     address endpoint;
     uint32 endpointId;
     address delegate;
+    address authorized;
     IVaultFactory factory;
     IVaultRegistryMessenger messenger;
 
@@ -32,7 +33,7 @@ contract TempVaultRegistry is Ownable {
      * _endpoint id: registry current endpoint id  where it lives
      */
     modifier onlyAuhtorized(address attemptedUser) {
-        require(attemptedUser == delegate, "Not authrized to perform ");
+        require(attemptedUser == authorized, "Not authrized to perform ");
         _;
     }
 
@@ -41,6 +42,7 @@ contract TempVaultRegistry is Ownable {
         address _delegate,
         address _endpoint,
         uint32 _endpointId,
+        address _authorized,
         IVaultFactory _factory,
         IVaultRegistryMessenger _messenger
     ) Ownable(_delegate) {
@@ -49,6 +51,7 @@ contract TempVaultRegistry is Ownable {
         delegate = _delegate;
         factory = _factory;
         messenger = _messenger;
+        authorized = _authorized;
     }
 
     //initialize each dependenc no need to use interface we create here we makign like this to save space on deployment
@@ -56,13 +59,19 @@ contract TempVaultRegistry is Ownable {
     //important we need noted above to save alot of space for dpeloyment
 
     //sets vault address for each dependency so it can communicate with us especially the messenger
-    function setAddressDependencies(address vaultAddress) public {
+    function setAddressDependencies(
+        address vaultAddress
+    ) public onlyAuhtorized(msg.sender) {
         factory.setVault(vaultAddress);
         messenger.setVault(vaultAddress);
     }
 
-    function vaultDeployQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
+    function vaultDeployQuote(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote memory _quoteParams
+    )
         public
+        onlyAuhtorized(msg.sender)
         returns (MessagingHelper.ComposedMessage memory _composedMessage)
     {
         _composedMessage = messenger.textQuote(vaultId, _quoteParams);
@@ -71,32 +80,46 @@ contract TempVaultRegistry is Ownable {
     function vaultDeploymentsQuote(
         uint256 vaultId,
         MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
-    ) public returns (MessagingHelper.ComposedMessage[] memory _composedMessage) {
-        _composedMessage = messenger.bulkTextQuote(vaultId, _quoteParamsCollection);
+    )
+        public
+        onlyAuhtorized(msg.sender)
+        returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
+    {
+        _composedMessage = messenger.bulkTextQuote(
+            vaultId,
+            _quoteParamsCollection
+        );
     }
 
-    function deployVault(address _owner, bytes memory deployParams) public returns (uint256) {
-        (uint256 vaultCreatedId, IVaultManager vault) = factory.deployVault(deployParams);
+    function deployVault(
+        address _owner,
+        bytes memory deployParams
+    ) public returns (uint256) {
+        (uint256 vaultCreatedId, ) = factory.deployVault(deployParams);
 
         messenger.registerOapp(_owner, vaultCreatedId);
 
         return vaultCreatedId;
     }
 
-    function deployVaultsQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote[] memory _composedMessages)
-        public
-    {
+    function deployVaultsQuote(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote[] memory _composedMessages
+    ) public {
         messenger.bulkTextQuote(vaultId, _composedMessages);
     }
 
-    function deployVaults(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {
+    function deployVaults(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessage[] memory _composedMessages
+    ) public {
         bool deployed = messenger.bulkText(vaultId, _composedMessages);
 
         require(deployed, "Cannot dpeloy vaults multichain");
     }
 
-    function recieveText(bytes memory _text) public {
-        (bool success,) = address(this).call(_text);
+    function recieveText(uint256 vaultId, bytes memory _text) public {
+        (bool success, ) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
         require(success, "Text could not execute try again!");
     }
 
