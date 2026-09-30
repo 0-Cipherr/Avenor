@@ -10,17 +10,28 @@ import {VaultAssets} from "../src/VaultAssets.sol";
 import {TokenDeployer} from "../src/TokenDeployer.sol";
 import {VaultRegistry} from "../src/VaultRegistry.sol";
 
+//flow deploy on both chains first -> add peers for each other on both chains addPeer()
+//simulate a once chain vault simulateHubVaultDeployment() -> (deploy multichain vaults is if hub deployment works) ->
+//getMultichainDeployQuote() ->
 contract VaultRegistryTest is Test {
     VaultRegistry registry;
+    address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
+
+    address delegate = msg.sender;
+    address[] authorizedVip = [msg.sender];
+    string vaultName = "MicroStrategy";
+    string vaultTIcker = "MSTR";
+    IERC20 vaultAsset;
+    VaultAssets.FeesInfo fees;
+    VaultAssets.feeReceiversInfo feeRecievers;
     constructor() {}
 
     function setUp() public {}
 
+    //before doing anytthign we must deploy on multiple chains first
     function run() public {
         vm.startBroadcast();
-        address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
 
-        address delegate = msg.sender;
         deployRegistry(endpoint, delegate);
 
         vm.stopBroadcast();
@@ -31,12 +42,22 @@ contract VaultRegistryTest is Test {
         registry = new VaultRegistry(_endpoint, _delegate);
     }
 
-    function addPeer(address endopoint, bytes32 vault) public {}
+    function addPeer(uint32 eid, address vault) public {
+        registry.addRegistryPeer(eid, vault);
+    }
 
     //simulate multichain vault
     function simulateHubVaultDeployment() public {
-        bytes memory params = abi.encode(""); //constructor params
-        registry.deployHubVault(params);
+        VaultHelper.VaultDeployParams memory deployParams = generateeConstructorParams();
+        bytes memory params = abi.encode(deployParams); //constructor params
+        uint256 deployedVaultId = registry.deployHubVault(params);
+        getVaultInfo(deployedVaultId);
+    }
+
+    function generateeConstructorParams() public view returns (VaultHelper.VaultDeployParams memory vaultDeployParams) {
+        vaultDeployParams = VaultHelper.VaultDeployParams(
+            msg.sender, authorizedVip, vaultName, vaultTIcker, vaultAsset, msg.sender, endpoint, fees, feeRecievers
+        );
     }
 
     // (
@@ -50,23 +71,34 @@ contract VaultRegistryTest is Test {
     //         VaultAssets.FeesInfo memory _fees,
     //         VaultAssets.feeReceiversInfo memory _feeRecievers
     //     )
-    function getMultichainDpeloyQuote(bytes[] memory messages, uint32[] memory dstEids)
+    function getMultichainDeployQuote(bytes[] memory messages, uint32[] memory dstEids)
         public
+        view
         returns (VaultHelper.BulkVaultDeployments[] memory quotes)
     {
         quotes = registry.getMultiChainDpeloymentQuote(msg.sender, messages, dstEids);
     }
 
-    function simulateRegistrDeposit(uint256 vaultId, address _user, uint256 _amountAssets) public {
+    function simulateRegistryDeposit(uint256 vaultId, address _user, uint256 _amountAssets) public {
         registry.deposit(_user, vaultId, _amountAssets, _user);
     }
 
     function getUserInfo() public view {}
 
-    function getVaultInfo() public view {}
+    function getVaultInfo(uint256 _vaultId) public view returns (VaultHelper.Vault memory info) {
+        info = registry.getVault(_vaultId);
+
+        console.log("creator:", info.creator);
+        console.log("tvl:", info.tvl);
+        console.log("allTimeVolume:", info.allTimeVolume);
+        console.log("vault:", address(info.vault));
+        console.log("name:", info.name);
+        console.log("ticker:", info.ticker);
+        console.log("depositAsset:", address(info.depositAsset));
+    }
 
     //must quote first beofre peroforming
-    function simulateRegistryWithdraw(uint256 vaultId, uint256 shares, address reciever) public {
-        registry.vaultWithdraw(vaultId, shares, reciever);
+    function simulateRegistryWithdraw(uint256 vaultId, uint256 shares, address receiver) public {
+        registry.vaultWithdraw(vaultId, shares, receiver);
     }
 }

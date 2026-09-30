@@ -52,7 +52,17 @@ contract VaultManagerTest is Test {
         VaultAssets.feeReceiversInfo memory feeRecievers =
             VaultAssets.feeReceiversInfo(msg.sender, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d); //endpoint id for base 40245
         manager = new VaultManager(
-            authorized, vaultName, vaultTicker, IERC20(address(vaultAsset)), creator, endpoint, fees, feeRecievers
+            VaultHelper.VaultDeployParams(
+                creator,
+                authorized,
+                vaultName,
+                vaultTicker,
+                IERC20(address(vaultAsset)),
+                creator,
+                endpoint,
+                fees,
+                feeRecievers
+            )
         );
 
         console.log("Deployed manager: ");

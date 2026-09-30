@@ -49,3 +49,6 @@ docs/
 # Tools and Dependency Caches
 .deps/
 .wake/
+
+
+.env

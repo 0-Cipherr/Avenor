@@ -17,10 +17,9 @@ import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol"
 import {VaultManager} from "./VaultManager.sol";
 import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
 
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-
 import {VaultRegistryManager} from "./VaultRegistryManager.sol";
 
+//rename to vaultController
 contract VaultRegistry is Ownable, OApp, VaultRegistryManager {
     address _endpoint;
     uint32 _endpointId;
@@ -32,52 +31,44 @@ contract VaultRegistry is Ownable, OApp, VaultRegistryManager {
         OApp(__endpoint, __delegate)
         VaultRegistryManager()
     {
-        authrizedCallers.push(_delegate); //this authorized user should be the one we use in api
+        _delegate = __delegate;
+        authrizedCallers.push(__delegate); //this authorized user should be the one we use in api
     }
 
-    function deployHubVault(bytes memory deployParams) public returns (uint256) {
-        (
-            address deployer,
-            address[] memory _authorizedVip,
-            string memory vaultName,
-            string memory vaultTicker,
-            IERC20 _vaultAsset,
-            address _creator,
-            address vaultEndpoint,
-            VaultAssets.FeesInfo memory _fees,
-            VaultAssets.feeReceiversInfo memory _feeRecievers
-        ) = abi.decode(
-            deployParams,
-            (
-                address,
-                address[],
-                string,
-                string,
-                IERC20,
-                address,
-                address,
-                VaultAssets.FeesInfo,
-                VaultAssets.feeReceiversInfo
-            )
-        );
-        VaultManager vaultDpeloyed = new VaultManager(
-            _authorizedVip, vaultName, vaultTicker, _vaultAsset, _creator, vaultEndpoint, _fees, _feeRecievers
-        );
+    //new files added
+    function setMessengerAddr() public {}
+    // handles any meesage for messenger
+    function handleMessage() public {
+        //handles messages recieved in messenger
+    }
+
+    function deployHubVault(bytes memory deployParamsEncoded) public returns (uint256) {
+        (VaultHelper.VaultDeployParams memory deployParams) =
+            abi.decode(deployParamsEncoded, (VaultHelper.VaultDeployParams));
+        VaultManager vaultDpeloyed = new VaultManager(deployParams);
         VaultFactory convertedVault = VaultFactory(payable(address(vaultDpeloyed)));
 
         address[] memory authroized;
 
-        authroized[0] = deployer;
-        VaultHelper.Vault memory vaultInfo =
-            VaultHelper.Vault(deployer, 0, 0, convertedVault, vaultName, vaultTicker, _vaultAsset, authroized);
-        setDeployedVaults(deployer, convertedVault);
+        authroized[0] = deployParams.deployer;
+        VaultHelper.Vault memory vaultInfo = VaultHelper.Vault(
+            deployParams.deployer,
+            0,
+            0,
+            convertedVault,
+            deployParams.vaultName,
+            deployParams.vaultTicker,
+            deployParams.vaultAsset,
+            deployParams.authorizedVip
+        );
+        setDeployedVaults(deployParams.deployer, convertedVault);
         uint256 vaultId = setVault(vaultInfo);
 
         return vaultId;
     }
 
     function deployMultiChainVault(VaultHelper.BulkVaultDeployments[] memory deploymentQuotes) public {
-        for (uint256 i = 0; i < deploymentQuotes.length - 1; i++) {
+        for (uint256 i = 0; i < deploymentQuotes.length; i++) {
             VaultHelper.BulkVaultDeployments memory currentTarget = deploymentQuotes[i];
 
             textRegistry(currentTarget._dstEid, currentTarget.message, currentTarget.fee, currentTarget.refundAddress);
@@ -117,46 +108,51 @@ contract VaultRegistry is Ownable, OApp, VaultRegistryManager {
         return fee;
     }
 
+    function addressToBytes32(address _addr) public pure returns (bytes32) {
+        // First convert to fixed bytes20, then expand to bytes32
+        return bytes32(bytes20(_addr));
+    }
+
     //vualts should only communicate with the registry with wirdawring depostiing etc registry in the main brnahc
     //managers are the subbranhces
-    function addRegistryPeer(uint32 eid, bytes32 _registry) public {
-        _setPeer(eid, _registry); //each peer should be vault registry on every chain
+    function addRegistryPeer(uint32 eid, address _registry) public {
+        bytes32 encodedRegistry = addressToBytes32(_registry);
+        _setPeer(eid, encodedRegistry); //each peer should be vault registry on every chain
     }
 
     function deposit(address _user, uint256 _vaultId, uint256 _amountAssets, address _depositor)
         public
         payable
-        returns (bool)
+        returns (uint256 _sharesSent)
     {
         IERC20 asset = vaults[_vaultId].depositAsset;
-        bool hasBalance = assetBalanceCheck(asset, _amountAssets, _depositor);
+        assetBalanceCheck(asset, _amountAssets, _depositor);
         verifyUserExistence(_user);
         verifyAssetAllownce(_vaultId, _user, _amountAssets);
         (uint256 _shares) = vaults[_vaultId].vault.depositAssets(_amountAssets, _depositor);
 
-        return true;
+        _sharesSent = _shares;
     }
 
-    function verifyAssetAllownce(uint256 vaultId, address _user, uint256 _amount) public returns (bool) {
+    function verifyAssetAllownce(uint256 vaultId, address _user, uint256 _amount) public view {
         bool isVaild = vaults[vaultId].vault.verifyAssetApproval(_user, _amount);
         require(isVaild, "Not enough allownace to complete tx");
-        return true;
     }
 
-    function assetBalanceCheck(IERC20 asset, uint256 amountNeeded, address _caller) public returns (bool) {
-        bool hasBlaance = asset.balanceOf(_caller) > 0;
+    function assetBalanceCheck(IERC20 asset, uint256 amountNeeded, address _caller) public view {
+        bool hasBalance = asset.balanceOf(_caller) > amountNeeded;
 
-        return hasBlaance;
+        require(hasBalance == true, "Not enough to run transaction!");
     }
 
     function vaultWithdraw(uint256 _vaultId, uint256 shares, address reciever) public {
         vaults[_vaultId].vault.withdrawAssets(shares, reciever);
     }
 
-    function verifyOnlyCaller(address _caller) public {
+    function verifyOnlyCaller(address _caller) public view {
         bool isValid = false;
 
-        for (uint256 i = 0; i < authrizedCallers.length - 1; i++) {
+        for (uint256 i = 0; i < authrizedCallers.length; i++) {
             if (authrizedCallers[i] == _caller) {
                 isValid = true;
             }
@@ -181,6 +177,8 @@ contract VaultRegistry is Ownable, OApp, VaultRegistryManager {
         override
     {
         // handle incoming LayerZero message
-        address(this).call(_message);
+        (bool success,) = address(this).call(_message);
+
+        require(success, "Message recieved but tx reverted!");
     }
 }
