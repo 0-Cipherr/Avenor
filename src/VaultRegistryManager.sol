@@ -10,27 +10,20 @@ contract VaultRegistryManager {
 
     constructor() {}
 
-    function addUser(
-        address _userAddr,
-        VaultHelper.AvenorUser memory _newUser
-    ) public {
+    function addUser(address _userAddr, VaultHelper.AvenorUser memory _newUser) public {
         avenorUsers[_userAddr] = _newUser;
     }
 
     function verifyUserExistence(address _user) public {}
 
-    function setVault(
-        VaultHelper.Vault memory _vault
-    ) public returns (uint256) {
+    function setVault(VaultHelper.Vault memory _vault) public returns (uint256) {
         vaults[currentId] = _vault;
         uint256 vaultId = currentId;
         currentId++;
         return vaultId;
     }
 
-    function getVault(
-        uint256 vaultId
-    ) public view returns (VaultHelper.Vault memory) {
+    function getVault(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
         return vaults[vaultId];
     }
     // struct Vault {
@@ -43,10 +36,7 @@ contract VaultRegistryManager {
     //     address[] authorized;
     // }
 
-    function setAvenorUser(
-        address _user,
-        VaultHelper.AvenorUser memory _userInfo
-    ) public {
+    function setAvenorUser(address _user, VaultHelper.AvenorUser memory _userInfo) public {
         avenorUsers[_user] = _userInfo;
     }
 
@@ -62,9 +52,7 @@ contract VaultRegistryManager {
         vaults[vaultId].authorized.push(user);
     }
 
-    function getUser(
-        address _user
-    ) public view returns (VaultHelper.AvenorUser memory) {
+    function getUser(address _user) public view returns (VaultHelper.AvenorUser memory) {
         return avenorUsers[_user];
     }
 
