@@ -8,17 +8,13 @@ import {MessagingHelper} from "./MessagingHelper.sol";
 interface IVaultOApp {
     function updateAuthorized(address _delegate) external;
 
-    function setVaultRegistryMessenger(
-        address _vaultRegistryMessenger
-    ) external;
+    function setVaultRegistryMessenger(address _vaultRegistryMessenger) external;
 
-    function textVault(
-        MessagingHelper.ComposedMessage calldata _composedMessage
-    ) external payable;
+    function textVault(MessagingHelper.ComposedMessage calldata _composedMessage) external payable;
 
-    function quoteText(
-        MessagingHelper.ComposedMessageQuote calldata _quoteParams
-    ) external returns (MessagingHelper.ComposedMessage memory composedMessage);
+    function quoteText(MessagingHelper.ComposedMessageQuote calldata _quoteParams)
+        external
+        returns (MessagingHelper.ComposedMessage memory composedMessage);
 
     function constructComposedMessage(
         uint32 _dstEid,
@@ -27,18 +23,14 @@ interface IVaultOApp {
         bytes calldata _options,
         bool _payInLzToken,
         address _refundAddress
-    )
+    ) external pure returns (MessagingHelper.ComposedMessage memory composedMessage);
+
+    function validateBulkQuote(MessagingHelper.ComposedMessageQuote[] calldata _quoteParamsCollection)
         external
         pure
-        returns (MessagingHelper.ComposedMessage memory composedMessage);
+        returns (bool);
 
-    function validateBulkQuote(
-        MessagingHelper.ComposedMessageQuote[] calldata _quoteParamsCollection
-    ) external pure returns (bool);
-
-    function bulkTextQuote(
-        MessagingHelper.ComposedMessageQuote[] calldata _quoteParamsCollection
-    )
+    function bulkTextQuote(MessagingHelper.ComposedMessageQuote[] calldata _quoteParamsCollection)
         external
         returns (MessagingHelper.ComposedMessage[] memory _composedMessage);
 
