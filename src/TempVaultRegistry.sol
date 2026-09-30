@@ -59,17 +59,12 @@ contract TempVaultRegistry is Ownable {
     //important we need noted above to save alot of space for dpeloyment
 
     //sets vault address for each dependency so it can communicate with us especially the messenger
-    function setAddressDependencies(
-        address vaultAddress
-    ) public onlyAuhtorized(msg.sender) {
+    function setAddressDependencies(address vaultAddress) public onlyAuhtorized(msg.sender) {
         factory.setVault(vaultAddress);
         messenger.setVault(vaultAddress);
     }
 
-    function vaultDeployQuote(
-        uint256 vaultId,
-        MessagingHelper.ComposedMessageQuote memory _quoteParams
-    )
+    function vaultDeployQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
         public
         onlyAuhtorized(msg.sender)
         returns (MessagingHelper.ComposedMessage memory _composedMessage)
@@ -80,46 +75,32 @@ contract TempVaultRegistry is Ownable {
     function vaultDeploymentsQuote(
         uint256 vaultId,
         MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
-    )
-        public
-        onlyAuhtorized(msg.sender)
-        returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
-    {
-        _composedMessage = messenger.bulkTextQuote(
-            vaultId,
-            _quoteParamsCollection
-        );
+    ) public onlyAuhtorized(msg.sender) returns (MessagingHelper.ComposedMessage[] memory _composedMessage) {
+        _composedMessage = messenger.bulkTextQuote(vaultId, _quoteParamsCollection);
     }
 
-    function deployVault(
-        address _owner,
-        bytes memory deployParams
-    ) public returns (uint256) {
-        (uint256 vaultCreatedId, ) = factory.deployVault(deployParams);
+    function deployVault(address _owner, bytes memory deployParams) public returns (uint256) {
+        (uint256 vaultCreatedId,) = factory.deployVault(deployParams);
 
         messenger.registerOapp(_owner, vaultCreatedId);
 
         return vaultCreatedId;
     }
 
-    function deployVaultsQuote(
-        uint256 vaultId,
-        MessagingHelper.ComposedMessageQuote[] memory _composedMessages
-    ) public {
+    function deployVaultsQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote[] memory _composedMessages)
+        public
+    {
         messenger.bulkTextQuote(vaultId, _composedMessages);
     }
 
-    function deployVaults(
-        uint256 vaultId,
-        MessagingHelper.ComposedMessage[] memory _composedMessages
-    ) public {
+    function deployVaults(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {
         bool deployed = messenger.bulkText(vaultId, _composedMessages);
 
         require(deployed, "Cannot dpeloy vaults multichain");
     }
 
     function recieveText(uint256 vaultId, bytes memory _text) public {
-        (bool success, ) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
+        (bool success,) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
         require(success, "Text could not execute try again!");
     }
 

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 import {VaultHelper} from "../src/VaultHelper.sol";
 import {IStrategyRouter} from "./IStrategyRouter.sol";
+
 contract StrategyAdapter {
     address authorized;
 
@@ -11,11 +12,12 @@ contract StrategyAdapter {
         require(attemptedUser == authorized, "Not authrized to perform ");
         _;
     }
+
     constructor(address _authorized) {
         authorized = _authorized;
     }
 
-    function addStrategy() public {}
+    function addStrategy(uint256 strategyId) public {}
 
     function removeStrategy() public {}
 
