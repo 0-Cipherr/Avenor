@@ -24,6 +24,7 @@ import {VaultFactory} from "./VaultFacotry.sol";
 contract TempVaultRegistry is Ownable {
     address endpoint;
     uint32 endpointId;
+    address delegate;
     VaultFactory factory;
     VaultRegistryMessenger messenger;
 
@@ -35,7 +36,18 @@ contract TempVaultRegistry is Ownable {
     constructor(address _delegate, address _endpoint, uint32 _endpointId) Ownable(_delegate) {
         endpoint = _endpoint;
         endpointId = _endpointId;
+        delegate = _delegate;
     }
 
-    function setAddressDependency() public {}
+    //initialize each dependenc no need to use interface we create here we makign like this to save space on deployment
+    function initializeDependencies() public {
+        factory = new VaultFactory(delegate, endpoint);
+        messenger = new VaultRegistryMessenger(delegate, endpoint);
+    }
+
+    //sets vault address for each dependency so it can communicate with us especially the messenger
+    function setAddressDependencies(address vaultAddress) public {
+        factory.setVault(vaultAddress);
+        factory.setVault(vaultAddress);
+    }
 }
