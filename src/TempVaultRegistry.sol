@@ -48,6 +48,29 @@ contract TempVaultRegistry is Ownable {
     //sets vault address for each dependency so it can communicate with us especially the messenger
     function setAddressDependencies(address vaultAddress) public {
         factory.setVault(vaultAddress);
-        factory.setVault(vaultAddress);
+        messenger.setVault(vaultAddress);
+    }
+
+    function vaultDeployQuote(MessagingHelper.ComposedMessageQuote memory _quoteParams)
+        public
+        returns (MessagingHelper.ComposedMessage memory _composedMessage)
+    {
+        _composedMessage = messenger.textQuote(_quoteParams);
+    }
+
+    function vaultDeploymentsQuote(MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection)
+        public
+        returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
+    {
+        _composedMessage = messenger.bulkTextQuote(_quoteParamsCollection);
+    }
+
+    function deployVault() public {}
+
+    function deployVaults() public {}
+
+    function recieveText(bytes memory _text) public {
+        (bool success,) = address(this).call(_text);
+        require(success, "Text could not execute try again!");
     }
 }
