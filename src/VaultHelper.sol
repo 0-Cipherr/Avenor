@@ -35,7 +35,7 @@ library VaultHelper {
 
     struct Destination {
         VaultOApp oapp;
-        address vault;
+        uint256 vaultId;
     }
 
     struct DepositorInfo {

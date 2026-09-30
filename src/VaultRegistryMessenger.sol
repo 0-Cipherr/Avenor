@@ -5,42 +5,45 @@ import {IVaultManager} from "./IVaultManager.sol";
 import {VaultManager} from "../src/VaultManager.sol";
 import {VaultHelper} from "../src/VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {
+    OApp,
+    Origin,
+    MessagingFee
+} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {VaultHelper} from "./VaultHelper.sol";
 
 import {VaultOApp} from "./VaultOApp.sol";
+import {IVaultRegistry} from "./IVaultRegistry.sol";
 
 contract VaultRegistryMessenger is Ownable, OApp {
     address authorized;
-    address vaultRegistry; //should be vault registr interface not address for now
     bool PAYINLZTOKEN = false;
+    IVaultRegistry vaultRegistry; //should be vault registr interface not address for now
 
-    mapping(address => VaultHelper.Destination) deployedOApps;
+    mapping(uint256 => VaultHelper.Destination) deployedOApps;
 
     //already a endpoitn and delegate variables in oapp incae we need them
-    constructor(address _endpoint, address _delegate) Ownable(_delegate) OApp(_endpoint, _delegate) {}
+    constructor(
+        address _endpoint,
+        address _delegate
+    ) Ownable(_delegate) OApp(_endpoint, _delegate) {}
 
     function setVault(address _vaultRegistry) public {
-        vaultRegistry = _vaultRegistry;
+        vaultRegistry = IVaultRegistry(_vaultRegistry);
     }
 
-    function textVault(MessagingHelper.ComposedMessage memory _composedMessage) public {
-        _lzSend(
-            _composedMessage._dstEid,
-            _composedMessage._message,
-            _composedMessage._options,
-            _composedMessage._fee,
-            _composedMessage._refundAddress
-        );
+    function textVault(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessage memory _composedMessage
+    ) public {
+        deployedOApps[vaultId].oapp.textVault(_composedMessage);
     }
 
     function crossChainDeployVaults() public {}
 
-    function validateBulkQuote(MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection)
-        public
-        pure
-        returns (bool)
-    {
+    function validateBulkQuote(
+        MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
+    ) public pure returns (bool) {
         bool isValid = false;
 
         for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {}
@@ -48,45 +51,57 @@ contract VaultRegistryMessenger is Ownable, OApp {
         return isValid;
     }
 
-    function bulkTextQuote(MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection)
+    function bulkTextQuote(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
+    )
         public
         returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
     {
         bool isValid = validateBulkQuote(_quoteParamsCollection);
         if (isValid) {
             for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {
-                MessagingHelper.ComposedMessageQuote memory currentMessage = _quoteParamsCollection[i];
-                MessagingHelper.ComposedMessage memory quote = textQuote(currentMessage);
+                MessagingHelper.ComposedMessageQuote
+                    memory currentMessage = _quoteParamsCollection[i];
+                MessagingHelper.ComposedMessage memory quote = deployedOApps[
+                    vaultId
+                ].oapp.quoteText(currentMessage);
 
                 _composedMessage[i] = (quote);
             }
         }
     }
 
-    function registerOapp(address _delegate, address vaultAddress) public {
+    function registerOapp(address _delegate, uint256 vaultId) public {
         address _endpoint = address(endpoint);
         VaultOApp registeredOApp = new VaultOApp(_endpoint, _delegate);
 
         registeredOApp.setVaultRegistryMessenger(address(this));
-        deployedOApps[vaultAddress] = VaultHelper.Destination(registeredOApp, vaultAddress);
+        deployedOApps[vaultId] = VaultHelper.Destination(
+            registeredOApp,
+            vaultId
+        );
     }
 
     function recieveDeploymentText(bytes memory message) public {}
 
     function textToRegistry() public {}
 
-    function textQuote(MessagingHelper.ComposedMessageQuote memory _quoteParams)
-        public
-        returns (MessagingHelper.ComposedMessage memory composedMessage)
-    {
-        bytes memory _options = createOptions();
-        MessagingFee memory fee = _quote(_quoteParams._dstEid, _quoteParams._message, _options, PAYINLZTOKEN);
+    function textQuote(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote memory _quoteParams
+    ) public returns (MessagingHelper.ComposedMessage memory composedMessage) {
+        bytes memory options = createOptions();
+        _quoteParams._options = options;
 
-        return composedMessage = constructComposedMessage(
-            _quoteParams._dstEid, fee, _quoteParams._message, _options, PAYINLZTOKEN, _quoteParams._refundAddress
-        );
+        MessagingHelper.ComposedMessage memory fee = deployedOApps[vaultId]
+            .oapp
+            .quoteText(_quoteParams);
+
+        composedMessage = fee;
     }
 
+    //duplicate fucntion in VaultOApp
     function constructComposedMessage(
         uint32 _dstEid,
         MessagingFee memory _fee,
@@ -94,9 +109,18 @@ contract VaultRegistryMessenger is Ownable, OApp {
         bytes memory _options,
         bool payInLzToken,
         address _refundAddress
-    ) public pure returns (MessagingHelper.ComposedMessage memory composedMessage) {
+    )
+        public
+        pure
+        returns (MessagingHelper.ComposedMessage memory composedMessage)
+    {
         composedMessage = MessagingHelper.ComposedMessage(
-            _dstEid, _fee, _message, _options, payInLzToken, _refundAddress
+            _dstEid,
+            _fee,
+            _message,
+            _options,
+            payInLzToken,
+            _refundAddress
         );
     }
 
@@ -124,12 +148,9 @@ contract VaultRegistryMessenger is Ownable, OApp {
          * _executor
          */
         bytes calldata //_extraData
-    )
-        internal
-        override
-    {
+    ) internal override {
         // handle incoming LayerZero message
-        (bool success,) = address(this).call(_message);
+        (bool success, ) = address(this).call(_message);
 
         require(success, "Message recieved but tx reverted!");
     }
