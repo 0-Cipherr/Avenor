@@ -15,6 +15,7 @@ library MessagingHelper {
     struct ComposedMessageQuote {
         uint32 _dstEid;
         bytes _message;
-        address refundAddress;
+        address _refundAddress;
+        bytes _options;
     }
 }
