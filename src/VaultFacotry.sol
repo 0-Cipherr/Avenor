@@ -4,6 +4,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVaultManager} from "./IVaultManager.sol";
 import {VaultManager} from "../src/VaultManager.sol";
 import {VaultHelper} from "../src/VaultHelper.sol";
+import {MessagingHelper} from "./MessagingHelper.sol";
 
 contract VaultFactory is Ownable {
     //accounting hld in the manager
@@ -70,6 +71,15 @@ contract VaultFactory is Ownable {
         );
 
         increaseVaultId();
+    }
+
+    function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages)
+        public
+        view
+        onlyAUhtorized(msg.sender)
+        returns (bool)
+    {
+        return true;
     }
 
     function increaseVaultId() public onlyAUhtorized(msg.sender) {

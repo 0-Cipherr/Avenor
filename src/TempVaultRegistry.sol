@@ -15,13 +15,16 @@ import {VaultRegistryManager} from "./VaultRegistryManager.sol";
 
 import {VaultRegistryMessenger} from "../src/VaultRegistryMessenger.sol";
 import {VaultFactory} from "./VaultFacotry.sol";
+import {IVaultFactory} from "./IVaultFactory.sol";
+import {IVaultRegistryMessenger} from "./IVaultRegistryMessenger.sol";
+import {IVaultManager} from "./IVaultManager.sol";
 
 contract TempVaultRegistry is Ownable {
     address endpoint;
     uint32 endpointId;
     address delegate;
-    VaultFactory factory;
-    VaultRegistryMessenger messenger;
+    IVaultFactory factory;
+    IVaultRegistryMessenger messenger;
 
     /**
      * _delegate - owner (deployer)
@@ -33,20 +36,24 @@ contract TempVaultRegistry is Ownable {
         _;
     }
 
-    constructor(address _delegate, address _endpoint, uint32 _endpointId) Ownable(_delegate) {
+    //deploy factory and registry manager before deploying this we need it to pass in
+    constructor(
+        address _delegate,
+        address _endpoint,
+        uint32 _endpointId,
+        IVaultFactory _factory,
+        IVaultRegistryMessenger _messenger
+    ) Ownable(_delegate) {
         endpoint = _endpoint;
         endpointId = _endpointId;
         delegate = _delegate;
+        factory = _factory;
+        messenger = _messenger;
     }
 
     //initialize each dependenc no need to use interface we create here we makign like this to save space on deployment
     //update instead of using its instances deploy before adding and just use its interfaces
     //important we need noted above to save alot of space for dpeloyment
-
-    function initializeDependencies() public {
-        factory = new VaultFactory(delegate, endpoint);
-        messenger = new VaultRegistryMessenger(delegate, endpoint);
-    }
 
     //sets vault address for each dependency so it can communicate with us especially the messenger
     function setAddressDependencies(address vaultAddress) public {
@@ -68,10 +75,23 @@ contract TempVaultRegistry is Ownable {
         _composedMessage = messenger.bulkTextQuote(vaultId, _quoteParamsCollection);
     }
 
-    function deployVault(uint256 vaultId) public {}
+    function deployVault(address _owner, bytes memory deployParams) public returns (uint256) {
+        (uint256 vaultCreatedId, IVaultManager vaultDeployed) = factory.deployVault(deployParams);
 
-    function deployVaultsQuote(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {}
-    function deployVaults(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {}
+        messenger.registerOapp(_owner, vaultCreatedId);
+
+        return vaultCreatedId;
+    }
+
+    function deployVaultsQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote[] memory _composedMessages)
+        public
+    {
+        messenger.bulkTextQuote(vaultId, _composedMessages);
+    }
+
+    function deployVaults(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {
+        bool deployed = messenger.bulk(vaultId, _composedMessages);
+    }
 
     function recieveText(bytes memory _text) public {
         (bool success,) = address(this).call(_text);
