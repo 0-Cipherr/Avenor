@@ -5,6 +5,7 @@ import {IVaultManager} from "./IVaultManager.sol";
 import {VaultManager} from "../src/VaultManager.sol";
 import {VaultHelper} from "../src/VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
+import {IStrategyAdapter} from "./IStrategyAdapter.sol";
 
 contract VaultFactory is Ownable {
     //accounting hld in the manager
@@ -12,14 +13,16 @@ contract VaultFactory is Ownable {
     address authroized;
     address vaultRegistry;
     uint256 changeOwnerMax = 3;
+    IStrategyAdapter strategyAdapter;
 
     mapping(address => uint256) changeOwnerChances;
     mapping(uint256 => VaultHelper.Vault) vaultsDeployed;
 
     //authorized shold only be the registry
-    constructor(address _delegate, address _authorized) Ownable(_delegate) {
+    constructor(address _delegate, address _authorized, IStrategyAdapter _strategyAdapter) Ownable(_delegate) {
         currentVaultId = 0;
         authroized = _authorized;
+        strategyAdapter = _strategyAdapter;
     }
 
     modifier onlyAUhtorized(address attemptedUser) {
@@ -42,7 +45,7 @@ contract VaultFactory is Ownable {
     {
         (VaultHelper.VaultDeployParams memory deployParams) =
             abi.decode(deployVaultParams, (VaultHelper.VaultDeployParams));
-        VaultManager vault = new VaultManager(deployParams);
+        VaultManager vault = new VaultManager(deployParams, strategyAdapter);
 
         vaultDeployed = IVaultManager(address(vault));
         vaultId = currentVaultId;
@@ -81,7 +84,7 @@ contract VaultFactory is Ownable {
         vault = vaultsDeployed[vaultId];
     }
 
-    function verifyChances(address _owner) public onlyAUhtorized(msg.sender) {
+    function verifyChances(address _owner) public view onlyAUhtorized(msg.sender) {
         uint256 chance = getOwnerChangeChances(_owner);
         require(chance < changeOwnerMax, "You ran out of vault owner canges ");
     } //emergency use case one time use

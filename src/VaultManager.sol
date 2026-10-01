@@ -12,15 +12,17 @@ import {VaultHelper} from "./VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {StrategyHelper} from "./StrategyHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
-import {VaultStrategies} from "./VaultStrategies.sol";
+import {IStrategyAdapter} from "./IStrategyAdapter.sol";
 import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
 
-contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
+contract VaultManager is Ownable, OApp, VaultAssets {
     address creator;
     address[] authorizedVip;
 
     IERC20 vaultAsset;
+
+    IStrategyAdapter strategyAdapter;
 
     struct Status {
         //use this on deposit if strategy is live we check this struct to verify and if its on other chain we bridge
@@ -29,8 +31,12 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
         address endpoint;
         uint256 strategyId;
     }
+    modifier onlyAuhtorized(address attemptedUser) {
+        require(attemptedUser == creator, "Not authrized to perform ");
+        _;
+    }
 
-    constructor(VaultHelper.VaultDeployParams memory _deployParams)
+    constructor(VaultHelper.VaultDeployParams memory _deployParams, IStrategyAdapter _strategyAdapter)
         Ownable(_deployParams.creator)
         OApp(_deployParams.vaultEndpoint, _deployParams.creator)
         VaultAssets(
@@ -40,12 +46,12 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
             _deployParams.fees,
             _deployParams.feeReceivers
         )
-        VaultStrategies()
     {
         authorizedVip = _deployParams.authorizedVip;
 
         vaultAsset = _deployParams.vaultAsset;
         creator = _deployParams.creator;
+        strategyAdapter = _strategyAdapter;
     }
 
     mapping(address => VaultHelper.DepositorInfo) depositors;
@@ -55,6 +61,29 @@ contract VaultManager is Ownable, OApp, VaultAssets, VaultStrategies {
     }
     // bytes strategyInfo //bytes suppose dot be strategy info struct containing info and addresses
     function setPeer(uint32 _eid, address _peer) public {}
+
+    //must swap into strategy deposit asset before doing this
+
+    function enterStrategy(uint256 vaultId, uint256 strategyId, uint256 assets, bytes memory params) public {
+        strategyAdapter.deposit(vaultId, strategyId, assets, params);
+    }
+
+    //convertion rates in avenor api
+    function exitStrategy(uint256 strategyId, uint256 assets, bytes memory params) public {
+        strategyAdapter.withdraw(strategyId, assets, params);
+    }
+
+    function emergencyExit(uint256 strategyId, bytes memory params) public {
+        strategyAdapter.withdrawAll(strategyId, params);
+    }
+
+    function getStrategyInfo(uint256 vaultId) public view returns (VaultHelper.StrategyInfo memory) {
+        uint256 totalAssets = strategyAdapter.getStrategyTotalAssets(vaultId);
+        address asset = strategyAdapter.getStategyAsset(vaultId);
+        uint256[] memory _vaultsDeposited = strategyAdapter.getStrategyVaults(vaultId);
+
+        return (VaultHelper.StrategyInfo(totalAssets, asset, _vaultsDeposited));
+    }
 
     function getAsset() public view returns (IERC20) {
         return vaultAsset;

@@ -45,5 +45,5 @@ interface IVaultRegistry {
 
     function verifyOnlyCaller(address caller) external view;
 
-    function recieveText(bytes memory _text) external;
+    function recieveText(uint256 vaultId, bytes memory _text) external;
 }

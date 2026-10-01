@@ -17,15 +17,29 @@ contract VaultRegistryMessenger is Ownable, OApp {
     IVaultRegistry vaultRegistry; //should be vault registr interface not address for now
 
     mapping(uint256 => VaultHelper.Destination) deployedOApps;
+    modifier onlyAuhtorized(address attemptedUser) {
+        require(attemptedUser == authorized, "Not authrized to perform ");
+        _;
+    }
 
+    modifier onlyVaultExists(uint256 _vaultId) {
+        bool isActive = deployedOApps[_vaultId].isActive;
+
+        require(isActive, "Vault does not exist");
+        _;
+    }
     //already a endpoitn and delegate variables in oapp incae we need them
     constructor(address _endpoint, address _delegate) Ownable(_delegate) OApp(_endpoint, _delegate) {}
 
-    function setVault(address _vaultRegistry) public {
+    function setVault(address _vaultRegistry) public onlyAuhtorized(msg.sender) {
         vaultRegistry = IVaultRegistry(_vaultRegistry);
     }
 
-    function textVault(uint256 vaultId, MessagingHelper.ComposedMessage memory _composedMessage) public {
+    function textVault(uint256 vaultId, MessagingHelper.ComposedMessage memory _composedMessage)
+        public
+        onlyAuhtorized(msg.sender)
+        onlyVaultExists(vaultId)
+    {
         deployedOApps[vaultId].oapp.textVault(_composedMessage);
     }
 
@@ -33,7 +47,8 @@ contract VaultRegistryMessenger is Ownable, OApp {
 
     function validateBulkQuote(MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection)
         public
-        pure
+        view
+        onlyAuhtorized(msg.sender)
         returns (bool)
     {
         bool isValid = false;
@@ -43,8 +58,10 @@ contract VaultRegistryMessenger is Ownable, OApp {
         return isValid;
     }
 
+    //fix using deployed vault to interact without it existing
     function bulkTextQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection)
         public
+        onlyAuhtorized(msg.sender)
         returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
     {
         bool isValid = validateBulkQuote(_quoteParamsCollection);
@@ -58,22 +75,29 @@ contract VaultRegistryMessenger is Ownable, OApp {
         }
     }
 
-    function registerOapp(address _delegate, uint256 vaultId) public {
+    function registerOapp(address _delegate, uint256 vaultId)
+        public
+        onlyAuhtorized(msg.sender)
+        onlyVaultExists(vaultId)
+    {
         address _endpoint = address(endpoint);
         VaultOApp registeredOApp = new VaultOApp(_endpoint, _delegate);
 
         registeredOApp.setVaultRegistryMessenger(address(this));
-        deployedOApps[vaultId] = VaultHelper.Destination(registeredOApp, vaultId);
+        deployedOApps[vaultId] = VaultHelper.Destination(registeredOApp, vaultId, true);
     }
 
-    function recieveDeploymentText(bytes memory message) public {}
+    function recieveDeploymentText(bytes memory message) public onlyAuhtorized((msg.sender)) {}
 
-    function textToRegistry(bytes memory text) public {
-        vaultRegistry.recieveText(text);
+    function textToRegistry(uint256 vaultId, bytes memory text) public onlyAuhtorized(msg.sender) {
+        vaultRegistry.recieveText(vaultId, text);
     }
 
+    //fix using deployed vault to interact without it existing
+    //nvm works cuz vault will be deployed beofre hand adn registered
     function textQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
         public
+        onlyAuhtorized(msg.sender)
         returns (MessagingHelper.ComposedMessage memory composedMessage)
     {
         bytes memory options = createOptions();
@@ -84,7 +108,12 @@ contract VaultRegistryMessenger is Ownable, OApp {
         composedMessage = fee;
     }
 
-    function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _quoteParams) public returns (bool) {
+    function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _quoteParams)
+        public
+        onlyAuhtorized(msg.sender)
+        onlyVaultExists(vaultId)
+        returns (bool)
+    {
         for (uint256 i = 0; i < _quoteParams.length; i++) {
             MessagingHelper.ComposedMessage memory _currentQuote;
             textVault(vaultId, _currentQuote);
@@ -101,10 +130,9 @@ contract VaultRegistryMessenger is Ownable, OApp {
         bytes memory _options,
         bool payInLzToken,
         address _refundAddress
-    ) public pure returns (MessagingHelper.ComposedMessage memory composedMessage) {
-        composedMessage = MessagingHelper.ComposedMessage(
-            _dstEid, _fee, _message, _options, payInLzToken, _refundAddress
-        );
+    ) public view onlyAuhtorized(msg.sender) returns (MessagingHelper.ComposedMessage memory composedMessage) {
+        composedMessage =
+            MessagingHelper.ComposedMessage(_dstEid, _fee, _message, _options, payInLzToken, _refundAddress);
     }
 
     //logic to be executed on desitnatioon chain
@@ -118,7 +146,7 @@ contract VaultRegistryMessenger is Ownable, OApp {
      * to find go to the dpeloed endpoints list layer zero has
      * Options are how applications communicate verification and execution preferences to the off-chain workers that carry out crosschain messages.
      */
-    function createOptions() public returns (bytes memory) {} //create proper options for vaults so messages are sent properly
+    function createOptions() public onlyAuhtorized(msg.sender) returns (bytes memory) {} //create proper options for vaults so messages are sent properly
 
     function _lzReceive(
         Origin calldata,

@@ -36,6 +36,13 @@ library VaultHelper {
     struct Destination {
         VaultOApp oapp;
         uint256 vaultId;
+        bool isActive;
+    }
+
+    struct StrategyInfo {
+        uint256 totalAssets;
+        address asset;
+        uint256[] vaultsDeposited;
     }
 
     struct DepositorInfo {
