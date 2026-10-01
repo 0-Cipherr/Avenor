@@ -7,7 +7,6 @@ import {VaultHelper} from "./VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {StrategyHelper} from "./StrategyHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
-import {VaultStrategies} from "./VaultStrategies.sol";
 
 import {VaultManager} from "./VaultManager.sol";
 
