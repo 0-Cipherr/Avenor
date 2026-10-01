@@ -1,28 +1,46 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
-import {OAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+import {
+    OAppOptionsType3
+} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {
+    ERC4626
+} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {ReadCodecV1, EVMCallRequestV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
+import {
+    ReadCodecV1,
+    EVMCallRequestV1
+} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {
+    OApp,
+    Origin,
+    MessagingFee
+} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {VaultHelper} from "./VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {StrategyHelper} from "./StrategyHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
 import {IStrategyAdapter} from "./IStrategyAdapter.sol";
-import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {
+    MessagingReceipt
+} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
 
 contract VaultManager is Ownable, OApp, VaultAssets {
     address creator;
-    address[] authorizedVip;
+    address[] authorizedVip; //th api wallet should be inclided
 
     IERC20 vaultAsset;
+    uint256 vaultId;
 
     IStrategyAdapter strategyAdapter;
+    mapping(address => VaultHelper.DepositorInfo) depositors;
+    bool isInStrategy = false;
+    uint256 currentStrategyId;
+    VaultManager vaultImplementation;
 
     struct Status {
         //use this on deposit if strategy is live we check this struct to verify and if its on other chain we bridge
@@ -32,11 +50,22 @@ contract VaultManager is Ownable, OApp, VaultAssets {
         uint256 strategyId;
     }
     modifier onlyAuhtorized(address attemptedUser) {
-        require(attemptedUser == creator, "Not authrized to perform ");
+        bool isValid = false;
+        for (uint256 i = 0; i < authorizedVip.length; i++) {
+            if (authorizedVip[i] == attemptedUser) {
+                isValid = true;
+            }
+        }
+        require(isValid, "Not authrized to perform ");
+
         _;
     }
 
-    constructor(VaultHelper.VaultDeployParams memory _deployParams, IStrategyAdapter _strategyAdapter)
+    //vaultId should be in parameter
+    constructor(
+        VaultHelper.VaultDeployParams memory _deployParams,
+        IStrategyAdapter _strategyAdapter
+    )
         Ownable(_deployParams.creator)
         OApp(_deployParams.vaultEndpoint, _deployParams.creator)
         VaultAssets(
@@ -54,22 +83,55 @@ contract VaultManager is Ownable, OApp, VaultAssets {
         strategyAdapter = _strategyAdapter;
     }
 
-    mapping(address => VaultHelper.DepositorInfo) depositors;
-
-    function getDepositor(address _user) public view returns (VaultHelper.DepositorInfo memory) {
+    function getDepositorInfo(
+        address _user
+    )
+        public
+        view
+        onlyAuhtorized(msg.sender)
+        returns (VaultHelper.DepositorInfo memory)
+    {
         return depositors[_user];
     }
     // bytes strategyInfo //bytes suppose dot be strategy info struct containing info and addresses
-    function setPeer(uint32 _eid, address _peer) public {}
+    function setPeer(
+        uint32 _eid,
+        address _peer
+    ) public onlyAuhtorized(msg.sender) {}
 
     //must swap into strategy deposit asset before doing this
 
-    function enterStrategy(uint256 vaultId, uint256 strategyId, uint256 assets, bytes memory params) public {
-        strategyAdapter.deposit(vaultId, strategyId, assets, params);
+    function enterStrategy(
+        address _user, //this we use to make sure user has enough in the vault
+        uint256 strategyId,
+        uint256 assets,
+        bytes memory params
+    ) public onlyAuhtorized(msg.sender) {
+        bool isStrategyValid = strategyAdapter.verifyStrategyId(strategyId);
+        if (isStrategyValid) {
+            strategyAdapter.deposit(vaultId, strategyId, assets, params);
+            activateStrategy(strategyId);
+        }
+        deductTotalAssets(assets); //decreases since we are entering strategy
+    }
+
+    function activateStrategy(
+        uint256 strategyId
+    ) public onlyAuhtorized(msg.sender) {
+        currentStrategyId = strategyId;
+        isInStrategy = true;
+    }
+
+    function deactivateStrategy() public {
+        isInStrategy = false;
     }
 
     //convertion rates in avenor api
-    function exitStrategy(uint256 strategyId, uint256 assets, bytes memory params) public {
+    function exitStrategy(
+        uint256 strategyId,
+        uint256 assets,
+        bytes memory params
+    ) public {
         strategyAdapter.withdraw(strategyId, assets, params);
     }
 
@@ -77,10 +139,14 @@ contract VaultManager is Ownable, OApp, VaultAssets {
         strategyAdapter.withdrawAll(strategyId, params);
     }
 
-    function getStrategyInfo(uint256 vaultId) public view returns (VaultHelper.StrategyInfo memory) {
-        uint256 totalAssets = strategyAdapter.getStrategyTotalAssets(vaultId);
-        address asset = strategyAdapter.getStategyAsset(vaultId);
-        uint256[] memory _vaultsDeposited = strategyAdapter.getStrategyVaults(vaultId);
+    function getStrategyInfo(
+        uint256 _vaultId
+    ) public view returns (VaultHelper.StrategyInfo memory) {
+        uint256 totalAssets = strategyAdapter.getStrategyTotalAssets(_vaultId);
+        address asset = strategyAdapter.getStategyAsset(_vaultId);
+        uint256[] memory _vaultsDeposited = strategyAdapter.getStrategyVaults(
+            _vaultId
+        );
 
         return (VaultHelper.StrategyInfo(totalAssets, asset, _vaultsDeposited));
     }
@@ -101,20 +167,40 @@ contract VaultManager is Ownable, OApp, VaultAssets {
         authorizedVip.push(authroized);
     }
 
-    function createDepositor(address _depositor, VaultHelper.DepositorInfo memory _info) public {
+    function createDepositor(
+        address _depositor,
+        VaultHelper.DepositorInfo memory _info
+    ) public {
         depositors[_depositor] = _info;
     }
 
-    function crossChainDeposit(uint32 _dstEid, uint256 assets, address receiver) public {}
+    function crossChainDeposit(
+        uint32 _dstEid,
+        uint256 assets,
+        address receiver
+    ) public {}
 
-    function depositAssets(uint256 assets, address receiver) public returns (uint256 _shares) {
+    function depositAssets(
+        uint256 assets,
+        address receiver
+    ) public returns (uint256 _shares) {
         //use status check here
         _shares = convertToShares(assets);
-        bool successfulTransfer = vaultAsset.transferFrom(receiver, msg.sender, assets); //must be approved
-        require(successfulTransfer, "Transfer did not go through check approvals;");
+        bool successfulTransfer = vaultAsset.transferFrom(
+            receiver,
+            msg.sender,
+            assets
+        ); //must be approved
+        require(
+            successfulTransfer,
+            "Transfer did not go through check approvals;"
+        );
         mintShares(_shares, receiver);
         if (hasDeposited(receiver) != true) {
-            createDepositor(receiver, VaultHelper.DepositorInfo(receiver, assets, _shares, assets));
+            createDepositor(
+                receiver,
+                VaultHelper.DepositorInfo(receiver, assets, _shares, assets)
+            );
         } else {
             setSharesOwned(_shares, receiver, false);
             setAssetsDeposited(assets, receiver, false);
@@ -132,9 +218,16 @@ contract VaultManager is Ownable, OApp, VaultAssets {
         return depositors[_user].assetVolume > 0;
     }
 
-    function setAssetsDeposited(uint256 _amount, address _assetOwner, bool isDeducted) public {
+    function setAssetsDeposited(
+        uint256 _amount,
+        address _assetOwner,
+        bool isDeducted
+    ) public {
         if (isDeducted) {
-            require(depositors[_assetOwner].shares >= _amount, "Not enogh o perform arethmetic");
+            require(
+                depositors[_assetOwner].shares >= _amount,
+                "Not enogh o perform arethmetic"
+            );
             depositors[_assetOwner].assets -= _amount;
         } else {
             depositors[_assetOwner].assets += _amount;
@@ -145,18 +238,35 @@ contract VaultManager is Ownable, OApp, VaultAssets {
         depositors[_user].assetVolume += _newVolume;
     }
 
-    function setSharesOwned(uint256 _amount, address _shareOwner, bool isDeducted) public {
+    function setSharesOwned(
+        uint256 _amount,
+        address _shareOwner,
+        bool isDeducted
+    ) public {
         if (isDeducted) {
-            require(depositors[_shareOwner].shares >= _amount, "Not enogh o perform arethmetic");
+            require(
+                depositors[_shareOwner].shares >= _amount,
+                "Not enogh o perform arethmetic"
+            );
             depositors[_shareOwner].shares -= _amount;
         } else {
             depositors[_shareOwner].shares += _amount;
         }
     }
 
-    function updateDepositorAssets(uint256 _assetAmount, uint256 _shareAmount, address _user) public {
-        require(address(msg.sender) == address(_user), "Not user only sender can call this !");
-        require(depositors[_user].shares >= _shareAmount, "Not enough shares to withdraw!");
+    function updateDepositorAssets(
+        uint256 _assetAmount,
+        uint256 _shareAmount,
+        address _user
+    ) public {
+        require(
+            address(msg.sender) == address(_user),
+            "Not user only sender can call this !"
+        );
+        require(
+            depositors[_user].shares >= _shareAmount,
+            "Not enough shares to withdraw!"
+        );
         depositors[_user].shares -= _shareAmount;
         depositors[_user].assets -= _assetAmount;
 
@@ -165,19 +275,32 @@ contract VaultManager is Ownable, OApp, VaultAssets {
 
     //_user user performing action
     function splitRewards(uint256 _amount, address _user) internal {
-        (, uint256 protocolFeeDeducted,) = calculateFees(_amount);
+        (, uint256 protocolFeeDeducted, ) = calculateFees(_amount);
         //needs approval first remmember in and out
-        vaultAsset.transferFrom(msg.sender, feeRecievers.protocolFee, protocolFeeDeducted); //make sure allowance is set up for user
+        vaultAsset.transferFrom(
+            msg.sender,
+            feeRecievers.protocolFee,
+            protocolFeeDeducted
+        ); //make sure allowance is set up for user
         if (_user != address(msg.sender)) {
             //creators dont pay there own vaults fees would make no sense
-            vaultAsset.transferFrom(msg.sender, feeRecievers.creatorFee, creatorFee);
+            vaultAsset.transferFrom(
+                msg.sender,
+                feeRecievers.creatorFee,
+                creatorFee
+            );
         }
     }
 
     //this is performed with api synchrounosly
     function withdrawAssets(uint256 _shares, address receiver) public {
-        VaultHelper.DepositorInfo memory _depositor = getDepositor(receiver);
-        require(_depositor.shares >= _shares, "Not enough shares deposited to withdraw!");
+        VaultHelper.DepositorInfo memory _depositor = getDepositorInfo(
+            receiver
+        );
+        require(
+            _depositor.shares >= _shares,
+            "Not enough shares deposited to withdraw!"
+        );
         require(receiver == msg.sender, "Not owner");
         uint256 _total = previewWithdraw(_shares);
         splitRewards(_total, receiver); //splitrewards before paying out
@@ -187,33 +310,55 @@ contract VaultManager is Ownable, OApp, VaultAssets {
             address(this),
             _total
         ); //must be approved
-        require(successfulTransfer, "Transfer did not go through check approvals;");
+        require(
+            successfulTransfer,
+            "Transfer did not go through check approvals;"
+        );
         setSharesOwned(_shares, receiver, true);
         setAssetsDeposited(_total, receiver, true);
         setVolume(receiver, _total);
-        emit VaultHelper.VaultWithdraw(receiver, receiver, receiver, _total, _shares);
+        emit VaultHelper.VaultWithdraw(
+            receiver,
+            receiver,
+            receiver,
+            _total,
+            _shares
+        );
         // withdraw out of vault to user
     }
 
-    function withdrawCrossChainQuote(address _user, uint256 _shares, uint32 _dstEid, bytes memory _options)
-        public
-        view
-        returns (MessagingHelper.ComposedMessage memory _quote)
-    {
+    function withdrawCrossChainQuote(
+        address _user,
+        uint256 _shares,
+        uint32 _dstEid,
+        bytes memory _options
+    ) public view returns (MessagingHelper.ComposedMessage memory _quote) {
         uint256 assetsTotal = previewWithdraw(_shares);
-        bytes memory _message = abi.encodeWithSignature("payUser(address,uint256)", _user, assetsTotal);
-        (MessagingHelper.ComposedMessage memory fee) = messageQuote(_dstEid, _message, _options, false, _user);
+        bytes memory _message = abi.encodeWithSignature(
+            "payUser(address,uint256)",
+            _user,
+            assetsTotal
+        );
+        (MessagingHelper.ComposedMessage memory fee) = messageQuote(
+            _dstEid,
+            _message,
+            _options,
+            false,
+            _user
+        );
         _quote = fee;
     }
 
-    function withdrawCrossChain(MessagingHelper.ComposedMessage memory _quote) public payable {
+    function withdrawCrossChain(
+        MessagingHelper.ComposedMessage memory _quote
+    ) public payable {
         sendMessage(_quote);
     }
 
     //must verify asset is bridged before using or executing
     function payUser(address _user, uint256 _amount) public returns (bool) {
         require(address(this).balance > _amount, "Not enough in contract");
-        (bool success,) = payable(_user).call{value: _amount}("");
+        (bool success, ) = payable(_user).call{value: _amount}("");
         require(success != false, "User was not paid");
         return success;
     }
@@ -233,13 +378,33 @@ contract VaultManager is Ownable, OApp, VaultAssets {
         bool _payLzToken,
         address _refundAddress
     ) public view returns (MessagingHelper.ComposedMessage memory) {
-        MessagingFee memory _fee = _quote(_dstEid, _message, _options, _payLzToken);
-        return MessagingHelper.ComposedMessage(_dstEid, _fee, _message, _options, _payLzToken, _refundAddress);
+        MessagingFee memory _fee = _quote(
+            _dstEid,
+            _message,
+            _options,
+            _payLzToken
+        );
+        return
+            MessagingHelper.ComposedMessage(
+                _dstEid,
+                _fee,
+                _message,
+                _options,
+                _payLzToken,
+                _refundAddress
+            );
     }
 
-    function sendMessage(MessagingHelper.ComposedMessage memory _msg) public returns (MessagingReceipt memory) {
-        MessagingReceipt memory _reciept =
-            _lzSend(_msg._dstEid, _msg._message, _msg._options, _msg._fee, _msg._refundAddress);
+    function sendMessage(
+        MessagingHelper.ComposedMessage memory _msg
+    ) public returns (MessagingReceipt memory) {
+        MessagingReceipt memory _reciept = _lzSend(
+            _msg._dstEid,
+            _msg._message,
+            _msg._options,
+            _msg._fee,
+            _msg._refundAddress
+        );
 
         return _reciept;
     }
@@ -255,12 +420,12 @@ contract VaultManager is Ownable, OApp, VaultAssets {
         address,
         /*_executor*/
         bytes calldata /*_extraData*/
-    )
-        internal
-        override
-    {
-        (uint256 _amount, bytes memory message) = abi.decode(_message, (uint256, bytes));
-        (bool success,) = address(this).call{value: _amount}(message);
+    ) internal override {
+        (uint256 _amount, bytes memory message) = abi.decode(
+            _message,
+            (uint256, bytes)
+        );
+        (bool success, ) = address(this).call{value: _amount}(message);
         require(success, "Tx revert executing message");
     }
 }

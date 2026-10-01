@@ -27,4 +27,5 @@ interface IStrategyAdapter {
     function withdrawAll(uint256 strategyId, bytes calldata params) external;
 
     function harvest(uint256 strategyId, bytes calldata params) external;
+    function verifyStrategyId(uint256 strategyId) external view returns (bool);
 }

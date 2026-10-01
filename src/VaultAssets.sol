@@ -44,6 +44,13 @@ contract VaultAssets is ERC4626 {
         return feeRecievers;
     }
 
+    function deductTotalAssets(uint256 _amount) public {
+        require(_totalAssets - _amount < 0, "Cant subtract");
+        _totalAssets -= _amount;
+    }
+
+    function increaseTotalAssets() public {}
+
     function getFees() public view returns (FeesInfo memory) {
         return fees;
     }
