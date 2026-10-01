@@ -18,7 +18,7 @@ import {IVaultFactory} from "./IVaultFactory.sol";
 import {IVaultRegistryMessenger} from "./IVaultRegistryMessenger.sol";
 import {IVaultManager} from "./IVaultManager.sol";
 
-contract TempVaultRegistry is Ownable {
+contract VaultRegistry is Ownable {
     address endpoint;
     uint32 endpointId;
     address delegate;
