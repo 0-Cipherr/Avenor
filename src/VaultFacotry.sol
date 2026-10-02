@@ -7,15 +7,20 @@ import {VaultHelper} from "../src/VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {IStrategyAdapter} from "./IStrategyAdapter.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-
-contract VaultFactory {
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {
+    OAppUpgradeable
+} from "@layerzerolabs/oapp-evm-upgradeable/contracts/oapp/OAppUpgradeable.sol";
+contract VaultFactory is OAppUpgradeable, OwnableUpgradeable {
     //accounting hld in the manager
     uint256 currentVaultId;
     address authroized;
     address vaultRegistry;
     uint256 changeOwnerMax = 3;
     IStrategyAdapter strategyAdapter;
-    VaultManager vaultImplementation;
+    address public immutable vaultImplementation;
 
     mapping(address => uint256) changeOwnerChances;
     mapping(uint256 => VaultHelper.Vault) vaultsDeployed;
@@ -55,7 +60,7 @@ contract VaultFactory {
             (VaultHelper.VaultDeployParams)
         );
 
-        address vault = Clones.clone(address(vaultImplementation));
+        address vault = Clones.clone(address((vaultImplementation)));
 
         VaultManager(vault).initialize(deployParams, strategyAdapter);
 

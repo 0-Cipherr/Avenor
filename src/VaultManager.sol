@@ -28,11 +28,16 @@ import {
     MessagingReceipt
 } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {
+    OAppUpgradeable
+} from "@layerzerolabs/oapp-evm-upgradeable/contracts/oapp/OAppUpgradeable.sol";
 
 contract VaultManager is Ownable, OApp, VaultAssets {
     address creator;
     address[] authorizedVip; //th api wallet should be inclided
-
     IERC20 vaultAsset;
     uint256 vaultId;
 
@@ -82,6 +87,8 @@ contract VaultManager is Ownable, OApp, VaultAssets {
         creator = _deployParams.creator;
         strategyAdapter = _strategyAdapter;
     }
+
+    function initialize() external initiallizer {}
 
     function getDepositorInfo(
         address _user
