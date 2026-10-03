@@ -44,6 +44,14 @@ contract StrategyAdapter {
         isVaultRegistered(strategyId, vaultId);
     }
 
+    function verifyStrategyId(uint256 strategyId) public view returns (bool) {
+        if (address(strategies[strategyId]) == address(0)) {
+            return true;
+        }
+
+        return false;
+    }
+
     function deposit(uint256 vaultId, uint256 strategyId, uint256 assets, bytes memory params)
         public
         onlyAuhtorized(msg.sender)
