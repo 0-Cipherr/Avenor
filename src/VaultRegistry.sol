@@ -36,6 +36,13 @@ contract VaultRegistry is Ownable {
         _;
     }
 
+    modifier vaultExists(uint256 vaultId) {
+        bool isVaultValid = factory.verifyVault(vaultId);
+
+        require(isVaultValid, "Vault is not valid!");
+        _;
+    }
+
     //deploy factory and registry manager before deploying this we need it to pass in
     constructor(
         address _delegate,
@@ -66,6 +73,7 @@ contract VaultRegistry is Ownable {
     function vaultDeployQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
         public
         onlyAuhtorized(msg.sender)
+        vaultExists(vaultId)
         returns (MessagingHelper.ComposedMessage memory _composedMessage)
     {
         _composedMessage = messenger.textQuote(vaultId, _quoteParams);
@@ -74,7 +82,12 @@ contract VaultRegistry is Ownable {
     function vaultDeploymentsQuote(
         uint256 vaultId,
         MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
-    ) public onlyAuhtorized(msg.sender) returns (MessagingHelper.ComposedMessage[] memory _composedMessage) {
+    )
+        public
+        onlyAuhtorized(msg.sender)
+        vaultExists(vaultId)
+        returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
+    {
         _composedMessage = messenger.bulkTextQuote(vaultId, _quoteParamsCollection);
     }
 
@@ -88,17 +101,21 @@ contract VaultRegistry is Ownable {
 
     function deployVaultsQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote[] memory _composedMessages)
         public
+        vaultExists(vaultId)
     {
         messenger.bulkTextQuote(vaultId, _composedMessages);
     }
 
-    function deployVaults(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {
+    function deployVaults(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages)
+        public
+        vaultExists(vaultId)
+    {
         bool deployed = messenger.bulkText(vaultId, _composedMessages);
 
         require(deployed, "Cannot dpeloy vaults multichain");
     }
 
-    function recieveText(uint256 vaultId, bytes memory _text) public {
+    function recieveText(uint256 vaultId, bytes memory _text) public vaultExists(vaultId) {
         (bool success,) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
         require(success, "Text could not execute try again!");
     }

@@ -7,13 +7,8 @@ import {VaultHelper} from "../src/VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {IStrategyAdapter} from "./IStrategyAdapter.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import {
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {
-    OAppUpgradeable
-} from "@layerzerolabs/oapp-evm-upgradeable/contracts/oapp/OAppUpgradeable.sol";
-contract VaultFactory is OAppUpgradeable, OwnableUpgradeable {
+
+contract VaultFactory {
     //accounting hld in the manager
     uint256 currentVaultId;
     address authroized;
@@ -37,32 +32,36 @@ contract VaultFactory is OAppUpgradeable, OwnableUpgradeable {
         _;
     }
 
-    function setVault(
-        address _vaultRegistry
-    ) public onlyAUhtorized(msg.sender) {
+    function setVault(address _vaultRegistry) public onlyAUhtorized(msg.sender) {
         vaultRegistry = _vaultRegistry;
     }
 
-    function setVaultsDeployed(
-        uint256 vaultId,
-        VaultHelper.Vault memory vaultInfo
-    ) public onlyAUhtorized(msg.sender) {
+    function verifyVault(uint256 vaultId) public view returns (bool) {
+        bool isValid;
+        for (uint256 i = 0; i < currentVaultId; i++) {
+            bool isVaultInitiated = vaultsDeployed[i].creator == address(0);
+            if (isVaultInitiated == false && currentVaultId == i) {
+                isValid = false;
+            } else if (isVaultInitiated == true && currentVaultId == i) {
+                isValid = true;
+            }
+        }
+    }
+
+    function setVaultsDeployed(uint256 vaultId, VaultHelper.Vault memory vaultInfo) public onlyAUhtorized(msg.sender) {
         vaultsDeployed[vaultId] = vaultInfo;
     }
 
     function deployVaultImplementation() public {}
 
-    function deployVault(
-        bytes memory deployVaultParams
-    ) public returns (uint256 vaultId, IVaultManager vaultDeployed) {
-        VaultHelper.VaultDeployParams memory deployParams = abi.decode(
-            deployVaultParams,
-            (VaultHelper.VaultDeployParams)
-        );
+    function deployVault(bytes memory deployVaultParams) public returns (uint256 vaultId, IVaultManager vaultDeployed) {
+        VaultHelper.VaultDeployParams memory deployParams =
+            abi.decode(deployVaultParams, (VaultHelper.VaultDeployParams));
 
         address vault = Clones.clone(address((vaultImplementation)));
 
-        VaultManager(vault).initialize(deployParams, strategyAdapter);
+        VaultManager(payable(vault)).__initialize_vault_(deployParams, strategyAdapter);
+        (deployParams, strategyAdapter);
 
         vaultDeployed = IVaultManager(vault);
         vaultId = currentVaultId;
@@ -99,40 +98,25 @@ contract VaultFactory is OAppUpgradeable, OwnableUpgradeable {
         ++currentVaultId;
     }
 
-    function getvault(
-        uint256 vaultId
-    )
-        public
-        view
-        onlyAUhtorized(msg.sender)
-        returns (VaultHelper.Vault memory vault)
-    {
+    function getvault(uint256 vaultId) public view onlyAUhtorized(msg.sender) returns (VaultHelper.Vault memory vault) {
         vault = vaultsDeployed[vaultId];
     }
 
-    function verifyChances(
-        address _owner
-    ) public view onlyAUhtorized(msg.sender) {
+    function verifyChances(address _owner) public view onlyAUhtorized(msg.sender) {
         uint256 chance = getOwnerChangeChances(_owner);
         require(chance < changeOwnerMax, "You ran out of vault owner canges ");
     } //emergency use case one time use
 
-    function changeVaultOwner(
-        uint256 vaultId
-    ) public onlyAUhtorized(msg.sender) {
+    function changeVaultOwner(uint256 vaultId) public onlyAUhtorized(msg.sender) {
         VaultHelper.Vault memory userVault = vaultsDeployed[vaultId];
         incrementChangeOwnerChances(userVault.creator);
     }
 
-    function getOwnerChangeChances(
-        address _owner
-    ) public view onlyAUhtorized(msg.sender) returns (uint256) {
+    function getOwnerChangeChances(address _owner) public view onlyAUhtorized(msg.sender) returns (uint256) {
         return changeOwnerChances[_owner];
     }
 
-    function incrementChangeOwnerChances(
-        address _owner
-    ) public onlyAUhtorized(msg.sender) {
+    function incrementChangeOwnerChances(address _owner) public onlyAUhtorized(msg.sender) {
         changeOwnerChances[_owner] += 1;
     }
 

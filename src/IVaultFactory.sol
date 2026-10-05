@@ -28,4 +28,6 @@ interface IVaultFactory {
     function getOwnerChangeChances(address _owner) external view returns (uint256);
 
     function incrementChangeOwnerChances(address _owner) external;
+
+    function verifyVault(uint256 vaultId) external view returns (bool);
 }
