@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract VaultAssets is ERC4626 {
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+
+contract VaultAssets is ERC20Upgradeable, ERC4626Upgradeable {
     uint256 __totalSupply;
     uint256 _totalAssets; //total assets deposited in vault
     uint256 totalShares;
@@ -29,15 +30,23 @@ contract VaultAssets is ERC4626 {
     mapping(address => uint256) assetsDeposited;
 
     //ethereum is measured like this in solidity best eway to be qable to use decimal notaton: 10 ** 18
-    constructor(
+
+    function _initializeVaultAsssets_(
         string memory _name,
         string memory _ticker,
-        IERC20 _asset,
+        IERC20 _asset, //any asset you want you mus have access to it
         FeesInfo memory feeInfo,
         feeReceiversInfo memory _recievers
-    ) ERC20(_name, _ticker) ERC4626(_asset) {
+    ) public {
+        __ERC20_init(_name, _ticker);
+        __ERC4626_init(_asset);
         feeRecievers = _recievers;
         fees = feeInfo;
+    }
+
+    //both inherited fucntions calls decimals so we solve conflcict here
+    function decimals() public view override(ERC20Upgradeable, ERC4626Upgradeable) returns (uint8) {
+        return super.decimals();
     }
 
     function getFeeRecievers() public view returns (feeReceiversInfo memory) {

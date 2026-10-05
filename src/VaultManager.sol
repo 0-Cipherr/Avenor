@@ -15,10 +15,11 @@ import {VaultAssets} from "../src/VaultAssets.sol";
 import {IStrategyAdapter} from "./IStrategyAdapter.sol";
 import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {IVaultManager as VaultFactory} from "./IVaultManager.sol";
-
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {OAppUpgradeable} from "../lib/devtools/packages/oapp-evm-upgradeable/contracts/oapp/OAppUpgradeable.sol";
 
-contract VaultManager is Ownable, OApp, ERC1967Proxy, VaultAssets {
+abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, ERC1967Proxy, VaultAssets {
     address creator;
     address[] authorizedVip; //th api wallet should be inclided
     IERC20 vaultAsset;
@@ -50,27 +51,26 @@ contract VaultManager is Ownable, OApp, ERC1967Proxy, VaultAssets {
     }
 
     //vaultId should be in parameter
-    constructor(VaultHelper.VaultDeployParams memory _deployParams, IStrategyAdapter _strategyAdapter)
-        Ownable(_deployParams.creator)
-        OApp(_deployParams.vaultEndpoint, _deployParams.creator)
-        ERC1967Proxy(address(this), abi.encode(_deployParams)) //fix and check this param
-        VaultAssets(
-            _deployParams.vaultName,
-            _deployParams.vaultTicker,
-            _deployParams.vaultAsset,
-            _deployParams.fees,
-            _deployParams.feeReceivers
-        )
+
+    //this funciton is suerd to iniitalize the clone
+    function __initialize_vault_(VaultHelper.VaultDeployParams memory _deployParams, IStrategyAdapter _strategyAdapter)
+        external
     {
         authorizedVip = _deployParams.authorizedVip;
 
         vaultAsset = _deployParams.vaultAsset;
         creator = _deployParams.creator;
         strategyAdapter = _strategyAdapter;
+        _initializeVaultAsssets_(
+            _deployParams.vaultName,
+            _deployParams.vaultTicker,
+            _deployParams.vaultAsset,
+            _deployParams.fees,
+            _deployParams.feeReceivers
+        );
+        __Ownable_init(_deployParams.creator);
+        __OApp_init(_deployParams.creator); //_deployParams.vaultEndpoint, _deployParams.creator
     }
-
-    //this funciton is suerd to iniitalize the clone
-    function initialize() external {}
 
     function getDepositorInfo(address _user)
         public

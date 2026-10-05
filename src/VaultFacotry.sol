@@ -7,16 +7,15 @@ import {VaultHelper} from "../src/VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {IStrategyAdapter} from "./IStrategyAdapter.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import "@openzeppelin/contracts/proxy/Clones.sol";
 
-contract VaultFactory is Clones {
+contract VaultFactory {
     //accounting hld in the manager
     uint256 currentVaultId;
     address authroized;
     address vaultRegistry;
     uint256 changeOwnerMax = 3;
     IStrategyAdapter strategyAdapter;
-    address private vaultImplementation;
+    address public immutable vaultImplementation;
 
     mapping(address => uint256) changeOwnerChances;
     mapping(uint256 => VaultHelper.Vault) vaultsDeployed;
@@ -37,33 +36,23 @@ contract VaultFactory is Clones {
         vaultRegistry = _vaultRegistry;
     }
 
+    function verifyVault(uint256 vaultId) public view returns (bool) {
+        bool isValid;
+        for (uint256 i = 0; i < currentVaultId; i++) {
+            bool isVaultInitiated = vaultsDeployed[i].creator == address(0);
+            if (isVaultInitiated == false && currentVaultId == i) {
+                isValid = false;
+            } else if (isVaultInitiated == true && currentVaultId == i) {
+                isValid = true;
+            }
+        }
+    }
+
     function setVaultsDeployed(uint256 vaultId, VaultHelper.Vault memory vaultInfo) public onlyAUhtorized(msg.sender) {
         vaultsDeployed[vaultId] = vaultInfo;
     }
 
-    //all thats left to fix
-
-    //set implementation use initalize() to st variables
-
-    /////////////////////////////////////////////
-    //IMPORTANT FLOW TO DPELO CONTRACTS
-    //SET IMPLEMENTATION FIRST
-    //CLONE WITH IMPLEMENTATION
-
-    // CLL INTIALIZE IN VAULT TO SET CONSTRUCTOR PARAMS >. PLEASE NOT_e VAULT SHOULD NOT HAVE CONSTRUCTOR PARAMS
-    function setVaultImplemntation(address implementation) public onlyAUhtorized(msg.sender) {
-        vaultImplementation = implementation;
-    }
-
-    function cloneVaultImplementation() public returns (address) {
-        address clonedImplementation = clone(vaultImplementation);
-        return clonedImplementation;
-    }
-
-    function initalizeVault(address implementation, bytes memory initializeParams) public {
-        IVaultManager vault = IVaultManager(implementation);
-        vault.initialize(initializeParams);
-    }
+    function deployVaultImplementation() public {}
 
     function deployVault(bytes memory deployVaultParams) public returns (uint256 vaultId, IVaultManager vaultDeployed) {
         VaultHelper.VaultDeployParams memory deployParams =
@@ -71,7 +60,8 @@ contract VaultFactory is Clones {
 
         address vault = Clones.clone(address((vaultImplementation)));
 
-        VaultManager(vault).initialize(deployParams, strategyAdapter);
+        VaultManager(payable(vault)).__initialize_vault_(deployParams, strategyAdapter);
+        (deployParams, strategyAdapter);
 
         vaultDeployed = IVaultManager(vault);
         vaultId = currentVaultId;
@@ -81,8 +71,6 @@ contract VaultFactory is Clones {
 
         registerVault(deployParams, vaultDeployed, vaultAuthorized);
     }
-
-    ///////////////////////////////////
 
     function registerVault(
         VaultHelper.VaultDeployParams memory deployParams,
