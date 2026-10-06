@@ -16,6 +16,7 @@ contract VaultFactory {
     uint256 changeOwnerMax = 3;
     IStrategyAdapter strategyAdapter;
     address public immutable vaultImplementation;
+    address vaultManager;
 
     mapping(address => uint256) changeOwnerChances;
     mapping(uint256 => VaultHelper.Vault) vaultsDeployed;
@@ -28,13 +29,14 @@ contract VaultFactory {
     }
 
     modifier onlyAUhtorized(address attemptedUser) {
-        require(attemptedUser == authroized, "Not authrized to perform ");
+        require(
+            attemptedUser == authroized || attemptedUser == vaultRegistry,
+            "Not authrized to perform "
+        );
         _;
     }
 
-    function setVault(
-        address _vaultRegistry
-    ) public onlyAUhtorized(msg.sender) {
+    function setVault(address _vaultRegistry) public {
         vaultRegistry = _vaultRegistry;
     }
 

@@ -24,7 +24,11 @@ contract VaultRegistryMessenger is Ownable, OApp {
 
     mapping(uint256 => VaultHelper.Destination) deployedOApps;
     modifier onlyAuhtorized(address attemptedUser) {
-        require(attemptedUser == authorized, "Not authrized to perform ");
+        require(
+            attemptedUser == authorized ||
+                attemptedUser == address(vaultRegistry),
+            "Not authrized to perform "
+        );
         _;
     }
 
@@ -40,9 +44,7 @@ contract VaultRegistryMessenger is Ownable, OApp {
         address _delegate
     ) Ownable(_delegate) OApp(_endpoint, _delegate) {}
 
-    function setVault(
-        address _vaultRegistry
-    ) public onlyAuhtorized(msg.sender) {
+    function setVault(address _vaultRegistry) public {
         vaultRegistry = IVaultRegistry(_vaultRegistry);
     }
 

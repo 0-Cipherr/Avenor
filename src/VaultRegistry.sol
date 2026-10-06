@@ -39,7 +39,10 @@ contract VaultRegistry is Ownable {
      * _endpoint id: registry current endpoint id  where it lives
      */
     modifier onlyAuhtorized(address attemptedUser) {
-        require(attemptedUser == authorized, "Not authrized to perform ");
+        require(
+            attemptedUser == authorized || attemptedUser == address(this),
+            "Not authrized to perform "
+        );
         _;
     }
 
@@ -73,9 +76,7 @@ contract VaultRegistry is Ownable {
     //important we need noted above to save alot of space for dpeloyment
 
     //sets vault address for each dependency so it can communicate with us especially the messenger
-    function setAddressDependencies(
-        address vaultAddress
-    ) public onlyAuhtorized(msg.sender) {
+    function setAddressDependencies(address vaultAddress) public {
         factory.setVault(vaultAddress);
         messenger.setVault(vaultAddress);
     }
