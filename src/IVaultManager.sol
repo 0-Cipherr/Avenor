@@ -7,9 +7,7 @@ import {VaultHelper} from "./VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {IStrategyAdapter} from "./IStrategyAdapter.sol";
 
-import {
-    MessagingReceipt
-} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
 interface IVaultManager {
     // =============================================================
@@ -36,36 +34,19 @@ interface IVaultManager {
     //                       DEPOSITOR INFO
     // =============================================================
 
-    function getDepositorInfo(
-        address _user
-    ) external view returns (VaultHelper.DepositorInfo memory);
+    function getDepositorInfo(address _user) external view returns (VaultHelper.DepositorInfo memory);
 
     function hasDeposited(address _user) external view returns (bool);
 
-    function createDepositor(
-        address _depositor,
-        VaultHelper.DepositorInfo calldata _info
-    ) external;
+    function createDepositor(address _depositor, VaultHelper.DepositorInfo calldata _info) external;
 
-    function setAssetsDeposited(
-        uint256 _amount,
-        address _assetOwner,
-        bool isDeducted
-    ) external;
+    function setAssetsDeposited(uint256 _amount, address _assetOwner, bool isDeducted) external;
 
     function setVolume(address _user, uint256 _newVolume) external;
 
-    function setSharesOwned(
-        uint256 _amount,
-        address _shareOwner,
-        bool isDeducted
-    ) external;
+    function setSharesOwned(uint256 _amount, address _shareOwner, bool isDeducted) external;
 
-    function updateDepositorAssets(
-        uint256 _assetAmount,
-        uint256 _shareAmount,
-        address _user
-    ) external;
+    function updateDepositorAssets(uint256 _assetAmount, uint256 _shareAmount, address _user) external;
 
     // =============================================================
     //                         VAULT INFO
@@ -83,81 +64,44 @@ interface IVaultManager {
     //                         STRATEGY
     // =============================================================
 
-    function setStrategy(
-        uint256 strategyId,
-        bytes memory depositCallback
-    ) external;
+    function setStrategy(uint256 strategyId, bytes memory depositCallback) external;
 
-    function enterStrategy(
-        address _user,
-        uint256 strategyId,
-        uint256 assets,
-        bytes calldata params
-    ) external;
+    function enterStrategy(address _user, uint256 strategyId, uint256 assets, bytes calldata params) external;
 
     function activateStrategy(uint256 strategyId) external;
 
     function deactivateStrategy() external;
 
-    function exitStrategy(
-        uint256 strategyId,
-        uint256 assets,
-        bytes calldata params
-    ) external;
+    function exitStrategy(uint256 strategyId, uint256 assets, bytes calldata params) external;
 
     function emergencyExit(uint256 strategyId, bytes calldata params) external;
 
-    function checkStrategyCurrent(
-        address _user,
-        uint256 strategyId,
-        uint256 assets,
-        bytes calldata params
-    ) external;
+    function checkStrategyCurrent(address _user, uint256 strategyId, uint256 assets, bytes calldata params) external;
 
-    function getStrategyInfo(
-        uint256 _vaultId
-    ) external view returns (VaultHelper.StrategyInfo memory);
+    function getStrategyInfo(uint256 _vaultId) external view returns (VaultHelper.StrategyInfo memory);
 
-    function vaultHasWithdraw(
-        uint256 _assetsTotal,
-        bytes calldata params
-    ) external;
+    function vaultHasWithdraw(uint256 _assetsTotal, bytes calldata params) external;
 
     // =============================================================
     //                           DEPOSITS
     // =============================================================
 
-    function depositAssets(
-        uint256 assets,
-        address receiver
-    ) external returns (uint256 shares);
+    function depositAssets(uint256 assets, address receiver) external returns (uint256 shares);
 
-    function crossChainDeposit(
-        uint32 _dstEid,
-        uint256 assets,
-        address receiver
-    ) external;
+    function crossChainDeposit(uint32 _dstEid, uint256 assets, address receiver) external;
 
     // =============================================================
     //                         WITHDRAWALS
     // =============================================================
 
-    function withdrawAssets(
-        uint256 _shares,
-        address receiver,
-        bytes calldata callBackStrategy
-    ) external;
+    function withdrawAssets(uint256 _shares, address receiver, bytes calldata callBackStrategy) external;
 
-    function withdrawCrossChainQuote(
-        address _user,
-        uint256 _shares,
-        uint32 _dstEid,
-        bytes calldata _options
-    ) external view returns (MessagingHelper.ComposedMessage memory);
+    function withdrawCrossChainQuote(address _user, uint256 _shares, uint32 _dstEid, bytes calldata _options)
+        external
+        view
+        returns (MessagingHelper.ComposedMessage memory);
 
-    function withdrawCrossChain(
-        MessagingHelper.ComposedMessage calldata _quote
-    ) external payable;
+    function withdrawCrossChain(MessagingHelper.ComposedMessage calldata _quote) external payable;
 
     function payUser(address _user, uint256 _amount) external returns (bool);
 
@@ -175,7 +119,5 @@ interface IVaultManager {
         address _refundAddress
     ) external view returns (MessagingHelper.ComposedMessage memory);
 
-    function sendMessage(
-        MessagingHelper.ComposedMessage calldata _msg
-    ) external returns (MessagingReceipt memory);
+    function sendMessage(MessagingHelper.ComposedMessage calldata _msg) external returns (MessagingReceipt memory);
 }
