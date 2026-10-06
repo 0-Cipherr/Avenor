@@ -31,24 +31,29 @@ contract VaultInteractionScript is Script {
     }
 
     function setUp() public {
-        (StrategyAdapter strategyAdapter, IVaultFactory _factory, IVaultRegistryMessenger _messenger) =
-            testDeployRegistry();
-        uint32 peerEndpointId;
-        bytes32 peerAddr; //condiion  84532 ? 40245 : 40231;
-        address[] memory authorized;
-        authorized[0] = (msg.sender);
-        testVaultCreationNative(
-            msg.sender,
-            authorized,
-            "TEST",
-            "TST",
-            msg.sender,
-            _enpoint,
-            VaultAssets.FeesInfo(0, 0),
-            VaultAssets.feeReceiversInfo(address(0), address(0)),
-            peerEndpointId,
-            peerAddr
-        );
+        (
+            StrategyAdapter strategyAdapter,
+            IVaultFactory _factory,
+            IVaultRegistryMessenger _messenger
+        ) = testDeployRegistry();
+        // uint32 peerEndpointId;
+        // bytes32 peerAddr; //condiion  84532 ? 40245 : 40231;
+        // address[] memory authorized;
+        // authorized[0] = (msg.sender);
+        // addRegistryPeer(peerEndpointId, peerAddr);
+
+        // testVaultCreationNative(
+        //     msg.sender,
+        //     authorized,
+        //     "TEST",
+        //     "TST",
+        //     msg.sender,
+        //     _enpoint,
+        //     VaultAssets.FeesInfo(0, 0),
+        //     VaultAssets.feeReceiversInfo(address(0), address(0)),
+        //     peerEndpointId,
+        //     peerAddr
+        // );
     }
 
     // address deployer,
@@ -63,7 +68,11 @@ contract VaultInteractionScript is Script {
     //     bytes32 peerAddr
     function testDeployRegistry()
         public
-        returns (StrategyAdapter strategyAdapter, IVaultFactory _factory, IVaultRegistryMessenger _messenger)
+        returns (
+            StrategyAdapter strategyAdapter,
+            IVaultFactory _factory,
+            IVaultRegistryMessenger _messenger
+        )
     {
         address _delegate = msg.sender;
         _enpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
@@ -71,7 +80,7 @@ contract VaultInteractionScript is Script {
         strategyAdapter = deployStrategyAdapter(msg.sender);
         _factory = deployFacotry(msg.sender, strategyAdapter);
         _messenger = deployMessenger(_enpoint, msg.sender);
-        address[] memory authorized;
+        address[] memory authorized = new address[](1);
         authorized[0] = msg.sender;
 
         deployRegistry(_delegate, _enpoint, _endpointId, _factory, _messenger);
@@ -92,11 +101,19 @@ contract VaultInteractionScript is Script {
         bytes32 peerAddr
     ) public {
         IERC20 deployedToken = testDeployERC20("Gecko Coin", "GECKO");
-        addRegistryPeer(peerEndpointId, peerAddr);
 
-        VaultHelper.VaultDeployParams memory deployParams = constructDeployParams(
-            deployer, authorizedVip, vaultName, vaultTicker, deployedToken, creator, vaultEndpoint, fees, feeReceivers
-        );
+        VaultHelper.VaultDeployParams
+            memory deployParams = constructDeployParams(
+                deployer,
+                authorizedVip,
+                vaultName,
+                vaultTicker,
+                deployedToken,
+                creator,
+                vaultEndpoint,
+                fees,
+                feeReceivers
+            );
 
         registry.deployHubVault(creator, abi.encode(deployParams));
         testVaultDeploymentOutput(); //fill in this function
@@ -104,10 +121,11 @@ contract VaultInteractionScript is Script {
 
     function testVaultDeploymentOutput() public {}
 
-    function testDeployRegistryOutput(IVaultFactory factory, IVaultRegistryMessenger messenger, StrategyAdapter adapter)
-        public
-        pure
-    {
+    function testDeployRegistryOutput(
+        IVaultFactory factory,
+        IVaultRegistryMessenger messenger,
+        StrategyAdapter adapter
+    ) public pure {
         console.log("STEP ONE: Strategy Adapter deployed: ");
         console.logAddress(address(adapter));
         console.log("STEP TWO: Facotry Deployed: ");
@@ -131,7 +149,10 @@ contract VaultInteractionScript is Script {
     //next step
     function testVaultDeposit() public {}
 
-    function testDeployERC20(string memory name, string memory ticker) public returns (IERC20) {
+    function testDeployERC20(
+        string memory name,
+        string memory ticker
+    ) public returns (IERC20) {
         TokenDeployer deployed = new TokenDeployer(name, ticker);
         deployed.mintTokens(msg.sender, 100000);
         IERC20 tokenDeployed = IERC20(address(deployed));
@@ -145,16 +166,33 @@ contract VaultInteractionScript is Script {
         registry.addRegistryPeer(endpointId, peer);
     }
 
-    function deployStrategyAdapter(address _delegate) public returns (StrategyAdapter adapter) {
+    function deployStrategyAdapter(
+        address _delegate
+    ) public returns (StrategyAdapter adapter) {
         adapter = new StrategyAdapter(_delegate);
     }
 
-    function deployFacotry(address _authorized, StrategyAdapter adapter) public returns (IVaultFactory factory) {
-        factory = IVaultFactory(address(new VaultFactory(_authorized, IStrategyAdapter(address(adapter)))));
+    function deployFacotry(
+        address _authorized,
+        StrategyAdapter adapter
+    ) public returns (IVaultFactory factory) {
+        factory = IVaultFactory(
+            address(
+                new VaultFactory(
+                    _authorized,
+                    IStrategyAdapter(address(adapter))
+                )
+            )
+        );
     }
 
-    function deployMessenger(address endpoint, address delegate) public returns (IVaultRegistryMessenger messenger) {
-        messenger = IVaultRegistryMessenger(address(new VaultRegistryMessenger(endpoint, delegate)));
+    function deployMessenger(
+        address endpoint,
+        address delegate
+    ) public returns (IVaultRegistryMessenger messenger) {
+        messenger = IVaultRegistryMessenger(
+            address(new VaultRegistryMessenger(endpoint, delegate))
+        );
     }
 
     function deployRegistry(
@@ -164,7 +202,14 @@ contract VaultInteractionScript is Script {
         IVaultFactory _factory,
         IVaultRegistryMessenger _messenger
     ) public {
-        registry = new VaultRegistry(_delegate, __endpoint, __endpointId, _delegate, _factory, _messenger);
+        registry = new VaultRegistry(
+            _delegate,
+            __endpoint,
+            __endpointId,
+            _delegate,
+            _factory,
+            _messenger
+        );
     }
 
     function constructDeployParams(
@@ -179,7 +224,15 @@ contract VaultInteractionScript is Script {
         VaultAssets.feeReceiversInfo memory feeReceivers
     ) public pure returns (VaultHelper.VaultDeployParams memory params) {
         params = VaultHelper.VaultDeployParams(
-            deployer, authorizedVip, vaultName, vaultTicker, vaultAsset, creator, vaultEndpoint, fees, feeReceivers
+            deployer,
+            authorizedVip,
+            vaultName,
+            vaultTicker,
+            vaultAsset,
+            creator,
+            vaultEndpoint,
+            fees,
+            feeReceivers
         );
     }
 }
