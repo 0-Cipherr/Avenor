@@ -38,9 +38,6 @@ contract VaultInteractionScript is Script {
         address[] memory authorized;
         authorized[0] = (msg.sender);
         testVaultCreationNative(
-            strategyAdapter,
-            _factory,
-            _messenger,
             msg.sender,
             authorized,
             "TEST",
@@ -83,9 +80,6 @@ contract VaultInteractionScript is Script {
     }
 
     function testVaultCreationNative(
-        StrategyAdapter strategyAdapter,
-        IVaultFactory _factory,
-        IVaultRegistryMessenger _messenger,
         address deployer,
         address[] memory authorizedVip,
         string memory vaultName,
@@ -105,7 +99,10 @@ contract VaultInteractionScript is Script {
         );
 
         registry.deployHubVault(creator, abi.encode(deployParams));
+        testVaultDeploymentOutput(); //fill in this function
     }
+
+    function testVaultDeploymentOutput() public {}
 
     function testDeployRegistryOutput(IVaultFactory factory, IVaultRegistryMessenger messenger, StrategyAdapter adapter)
         public
@@ -131,6 +128,8 @@ contract VaultInteractionScript is Script {
         console.log("STEP THREE: Messenger Deployed: ");
         console.log(address(messenger));
     }
+    //next step
+    function testVaultDeposit() public {}
 
     function testDeployERC20(string memory name, string memory ticker) public returns (IERC20) {
         TokenDeployer deployed = new TokenDeployer(name, ticker);
@@ -178,7 +177,7 @@ contract VaultInteractionScript is Script {
         address vaultEndpoint,
         VaultAssets.FeesInfo memory fees,
         VaultAssets.feeReceiversInfo memory feeReceivers
-    ) public view returns (VaultHelper.VaultDeployParams memory params) {
+    ) public pure returns (VaultHelper.VaultDeployParams memory params) {
         params = VaultHelper.VaultDeployParams(
             deployer, authorizedVip, vaultName, vaultTicker, vaultAsset, creator, vaultEndpoint, fees, feeReceivers
         );
