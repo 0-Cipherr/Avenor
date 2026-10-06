@@ -31,7 +31,7 @@ contract VaultRegistry is Ownable {
         bytes32 peer;
     }
 
-    RegistryPeerInfo[] peerInfo;
+    RegistryPeerInfo[] public peerInfo;
 
     /**
      * _delegate - owner (deployer)
@@ -79,12 +79,8 @@ contract VaultRegistry is Ownable {
     }
 
     //need to add all registry peers before making
-    function addRegistryPeer(uint256 vaultId, uint32 eid, bytes32 registryAddr)
-        public
-        onlyAuhtorized(msg.sender)
-        vaultExists(vaultId)
-    {
-        messenger.addPeer(vaultId, eid, registryAddr);
+    function addRegistryPeer(uint32 eid, bytes32 registryAddr) public onlyAuhtorized(msg.sender) {
+        peerInfo.push(RegistryPeerInfo(eid, registryAddr));
     }
 
     //used to get quote to deploy one vault on another chain
