@@ -1,49 +1,185 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {VaultHelper} from "./VaultHelper.sol";
+import {MessagingHelper} from "./MessagingHelper.sol";
+import {StrategyHelper} from "./StrategyHelper.sol";
+import {VaultAssets} from "../src/VaultAssets.sol";
 
-interface IVaultRegistry {
-    function setMessengerAddr() external;
+import {VaultManager} from "./VaultManager.sol";
 
-    function handleMessage() external;
+import {VaultRegistryManager} from "./VaultRegistryManager.sol";
 
-    function deployHubVault(bytes calldata deployParamsEncoded) external returns (uint256 vaultId);
+import {VaultRegistryMessenger} from "../src/VaultRegistryMessenger.sol";
+import {VaultFactory} from "./VaultFacotry.sol";
+import {IVaultFactory} from "./IVaultFactory.sol";
+import {IVaultRegistryMessenger} from "./IVaultRegistryMessenger.sol";
+import {IVaultManager} from "./IVaultManager.sol";
 
-    function deployMultiChainVault(VaultHelper.BulkVaultDeployments[] calldata deploymentQuotes) external;
+contract VaultRegistry is Ownable {
+    address endpoint;
+    uint32 endpointId;
+    address delegate;
+    address authorized;
+    IVaultFactory factory;
+    IVaultRegistryMessenger messenger;
 
-    function textRegistry(uint32 dstEid, bytes calldata message, MessagingFee calldata fee, address refundAddress)
-        external
-        payable;
+    struct RegistryPeerInfo {
+        uint32 eid;
+        bytes32 peer;
+    }
 
-    function getMultiChainDpeloymentQuote(address user, bytes[] calldata messages, uint32[] calldata dstEids)
-        external
-        view
-        returns (VaultHelper.BulkVaultDeployments[] memory deployments);
+    RegistryPeerInfo[] peerInfo;
 
-    function verifyPeerExistence() external;
+    /**
+     * _delegate - owner (deployer)
+     * _endpoint: registry current endpoitn where  it lives
+     * _endpoint id: registry current endpoint id  where it lives
+     */
+    modifier onlyAuhtorized(address attemptedUser) {
+        require(attemptedUser == authorized, "Not authrized to perform ");
+        _;
+    }
 
-    function getMessageQuote(uint32 dstEid, bytes calldata message) external view returns (MessagingFee memory fee);
+    modifier vaultExists(uint256 vaultId) {
+        bool isVaultValid = factory.verifyVault(vaultId);
 
-    function addressToBytes32(address addr) external pure returns (bytes32);
+        require(isVaultValid, "Vault is not valid!");
+        _;
+    }
 
-    function addRegistryPeer(uint32 eid, address registry) external;
+    //deploy factory and registry manager before deploying this we need it to pass in
+    constructor(
+        address _delegate,
+        address _endpoint,
+        uint32 _endpointId,
+        address _authorized,
+        IVaultFactory _factory,
+        IVaultRegistryMessenger _messenger
+    ) Ownable(_delegate) {
+        endpoint = _endpoint;
+        endpointId = _endpointId;
+        delegate = _delegate;
+        factory = _factory;
+        messenger = _messenger;
+        authorized = _authorized;
+        setAddressDependencies(address(this));
+    }
 
-    function deposit(address user, uint256 vaultId, uint256 amountAssets, address depositor)
-        external
-        payable
-        returns (uint256 sharesSent);
+    //initialize each dependenc no need to use interface we create here we makign like this to save space on deployment
+    //update instead of using its instances deploy before adding and just use its interfaces
+    //important we need noted above to save alot of space for dpeloyment
 
-    function verifyAssetAllownce(uint256 vaultId, address user, uint256 amount) external view;
+    //sets vault address for each dependency so it can communicate with us especially the messenger
+    function setAddressDependencies(
+        address vaultAddress
+    ) public onlyAuhtorized(msg.sender) {
+        factory.setVault(vaultAddress);
+        messenger.setVault(vaultAddress);
+    }
 
-    function assetBalanceCheck(IERC20 asset, uint256 amountNeeded, address caller) external view;
+    //need to add all registry peers before making
+    function addRegistryPeer(
+        uint256 vaultId,
+        uint32 eid,
+        bytes32 registryAddr
+    ) public onlyAuhtorized(msg.sender) vaultExists(vaultId) {
+        messenger.addPeer(vaultId, eid, registryAddr);
+    }
 
-    function vaultWithdraw(uint256 vaultId, uint256 shares, address receiver) external;
+    //used to get quote to deploy one vault on another chain
+    function vaultDeployQuote(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote memory _quoteParams
+    )
+        public
+        onlyAuhtorized(msg.sender)
+        vaultExists(vaultId)
+        returns (MessagingHelper.ComposedMessage memory _composedMessage)
+    {
+        _composedMessage = messenger.textRegistryQuote(vaultId, _quoteParams);
+    }
 
-    function verifyOnlyCaller(address caller) external view;
+    //used to get quote to deploy multiple vaults on multiple chains
 
-    function recieveText(uint256 vaultId, bytes memory _text) external;
+    function vaultDeploymentsQuote(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
+    )
+        public
+        onlyAuhtorized(msg.sender)
+        vaultExists(vaultId)
+        returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
+    {
+        _composedMessage = messenger.bulkTextRegistriesQuote(
+            vaultId,
+            _quoteParamsCollection
+        );
+    }
+
+    //deploys vault on the products hub chain
+
+    //directyl use factry here since same chain tx
+    //before making multichain vaults this must bcreate d first
+    //all registries mut be deployed and added as peers before proceeding
+    function deployHubVault(
+        address _owner,
+        bytes memory deployParams
+    ) public returns (uint256) {
+        (uint256 vaultCreatedId, ) = factory.deployVault(deployParams);
+
+        messenger.registerOapp(_owner, vaultCreatedId);
+
+        addRegistiryPeersVault(vaultCreatedId); //addd peers upon creation
+
+        return vaultCreatedId;
+    }
+
+    //important we must do after deploying vault
+    function addRegistiryPeersVault(uint256 vaultId) public {
+        for (uint256 i = 0; i < peerInfo.length; i++) {
+            uint32 eid = peerInfo[i].eid;
+            bytes32 peer = peerInfo[i].peer;
+            messenger.addPeer(vaultId, eid, peer);
+        }
+    }
+
+    //quote to deploy vaults on multlpe chains vault mst be deploye don hub first
+    function deployVaultsCrossChainQuotes(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote[] memory _composedMessages
+    ) public vaultExists(vaultId) {
+        messenger.bulkTextRegistriesQuote(vaultId, _composedMessages);
+    }
+
+    //should use function called textRegistry instead of vault check make sure used properly
+    function deployVaultCrossChain(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessage[] memory _composedMessages
+    ) public vaultExists(vaultId) {
+        bool deployed = messenger.bulkText(vaultId, _composedMessages);
+
+        require(deployed, "Cannot dpeloy vaults multichain");
+    }
+
+    function recieveText(
+        uint256 vaultId,
+        bytes memory _text
+    ) public vaultExists(vaultId) {
+        (bool success, ) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
+        require(success, "Text could not execute try again!");
+    }
+
+    function deposit() public {}
+
+    function withdraw() public {}
+
+    function setStrategy() public {}
+
+    function stopVault() public onlyAuhtorized(msg.sender) {}
+
+    //flushes vault and returns funds to users immediatley this happens when vault is paused stopped or any sort of hack
+    function SOSVault() public onlyAuhtorized(msg.sender) {}
 }
