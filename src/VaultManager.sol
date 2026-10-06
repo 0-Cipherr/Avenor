@@ -72,6 +72,8 @@ abstract contract VaultManager is
         _;
     }
 
+    constructor(address _endpoint) OAppUpgradeable(_endpoint) {}
+
     //vaultId should be in parameter
 
     //this funciton is suerd to iniitalize the clone
@@ -113,6 +115,22 @@ abstract contract VaultManager is
 
     //must swap into strategy deposit asset before doing this
 
+    function setStrategy(
+        uint256 strategyId,
+        bytes memory depositCallback
+    ) public {
+        if (isInStrategy) {
+            strategyAdapter.withdrawAll(strategyId, bytes(""));
+            strategyAdapter.deposit(
+                vaultId,
+                strategyId,
+                _totalAssets,
+                depositCallback
+            );
+        }
+        currentStrategyId = strategyId;
+    }
+
     function enterStrategy(
         address _user, //this we use to make sure user has enough in the vault
         uint256 strategyId,
@@ -122,7 +140,9 @@ abstract contract VaultManager is
         bool isStrategyValid = strategyAdapter.verifyStrategyId(strategyId);
         if (isStrategyValid) {
             strategyAdapter.deposit(vaultId, strategyId, assets, params);
-            activateStrategy(strategyId);
+            if (isInStrategy == false) {
+                activateStrategy(strategyId);
+            }
         }
         deductTotalAssets(assets); //decreases since we are entering strategy
     }
@@ -224,6 +244,17 @@ abstract contract VaultManager is
         //deposit into vault
     }
 
+    function checkStrategyCurrent(
+        address _user,
+        uint256 strategyId,
+        uint256 assets,
+        bytes memory params
+    ) public {
+        if (isInStrategy) {
+            enterStrategy(_user, currentStrategyId, assets, params);
+        }
+    }
+
     receive() external payable {}
 
     function hasDeposited(address _user) public view returns (bool) {
@@ -305,7 +336,12 @@ abstract contract VaultManager is
     }
 
     //this is performed with api synchrounosly
-    function withdrawAssets(uint256 _shares, address receiver) public {
+    //callback stragey is params if vualt doesnt have enoguh pass into exit stragey to flush funds
+    function withdrawAssets(
+        uint256 _shares,
+        address receiver,
+        bytes memory callBackStrategy
+    ) public {
         VaultHelper.DepositorInfo memory _depositor = getDepositorInfo(
             receiver
         );
@@ -315,6 +351,7 @@ abstract contract VaultManager is
         );
         require(receiver == msg.sender, "Not owner");
         uint256 _total = previewWithdraw(_shares);
+        vaultHasWithdraw(_total, callBackStrategy);
         splitRewards(_total, receiver); //splitrewards before paying out
         bool successfulTransfer = vaultAsset.transferFrom(
             //send funds to user when done
@@ -337,6 +374,16 @@ abstract contract VaultManager is
             _shares
         );
         // withdraw out of vault to user
+    }
+
+    function vaultHasWithdraw(
+        uint256 _assetsTotal,
+        bytes memory params
+    ) public {
+        uint256 vaultAssetBalance = vaultAsset.balanceOf(address(this));
+        if (vaultAssetBalance < _assetsTotal) {
+            exitStrategy(currentStrategyId, _assetsTotal, params);
+        }
     }
 
     function withdrawCrossChainQuote(

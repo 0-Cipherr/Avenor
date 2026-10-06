@@ -26,6 +26,13 @@ contract VaultRegistry is Ownable {
     IVaultFactory factory;
     IVaultRegistryMessenger messenger;
 
+    struct RegistryPeerInfo {
+        uint32 eid;
+        bytes32 peer;
+    }
+
+    RegistryPeerInfo[] peerInfo;
+
     /**
      * _delegate - owner (deployer)
      * _endpoint: registry current endpoitn where  it lives
@@ -58,6 +65,7 @@ contract VaultRegistry is Ownable {
         factory = _factory;
         messenger = _messenger;
         authorized = _authorized;
+        setAddressDependencies(address(this));
     }
 
     //initialize each dependenc no need to use interface we create here we makign like this to save space on deployment
@@ -65,19 +73,36 @@ contract VaultRegistry is Ownable {
     //important we need noted above to save alot of space for dpeloyment
 
     //sets vault address for each dependency so it can communicate with us especially the messenger
-    function setAddressDependencies(address vaultAddress) public onlyAuhtorized(msg.sender) {
+    function setAddressDependencies(
+        address vaultAddress
+    ) public onlyAuhtorized(msg.sender) {
         factory.setVault(vaultAddress);
         messenger.setVault(vaultAddress);
     }
 
-    function vaultDeployQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
+    //need to add all registry peers before making
+    function addRegistryPeer(
+        uint256 vaultId,
+        uint32 eid,
+        bytes32 registryAddr
+    ) public onlyAuhtorized(msg.sender) vaultExists(vaultId) {
+        messenger.addPeer(vaultId, eid, registryAddr);
+    }
+
+    //used to get quote to deploy one vault on another chain
+    function vaultDeployQuote(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote memory _quoteParams
+    )
         public
         onlyAuhtorized(msg.sender)
         vaultExists(vaultId)
         returns (MessagingHelper.ComposedMessage memory _composedMessage)
     {
-        _composedMessage = messenger.textQuote(vaultId, _quoteParams);
+        _composedMessage = messenger.textRegistryQuote(vaultId, _quoteParams);
     }
+
+    //used to get quote to deploy multiple vaults on multiple chains
 
     function vaultDeploymentsQuote(
         uint256 vaultId,
@@ -88,37 +113,70 @@ contract VaultRegistry is Ownable {
         vaultExists(vaultId)
         returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
     {
-        _composedMessage = messenger.bulkTextQuote(vaultId, _quoteParamsCollection);
+        _composedMessage = messenger.bulkTextRegistriesQuote(
+            vaultId,
+            _quoteParamsCollection
+        );
     }
 
-    function deployVault(address _owner, bytes memory deployParams) public returns (uint256) {
-        (uint256 vaultCreatedId,) = factory.deployVault(deployParams);
+    //deploys vault on the products hub chain
+
+    //directyl use factry here since same chain tx
+    //before making multichain vaults this must bcreate d first
+    //all registries mut be deployed and added as peers before proceeding
+    function deployHubVault(
+        address _owner,
+        bytes memory deployParams
+    ) public returns (uint256) {
+        (uint256 vaultCreatedId, ) = factory.deployVault(deployParams);
 
         messenger.registerOapp(_owner, vaultCreatedId);
+
+        addRegistiryPeersVault(vaultCreatedId); //addd peers upon creation
 
         return vaultCreatedId;
     }
 
-    function deployVaultsQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote[] memory _composedMessages)
-        public
-        vaultExists(vaultId)
-    {
-        messenger.bulkTextQuote(vaultId, _composedMessages);
+    //important we must do after deploying vault
+    function addRegistiryPeersVault(uint256 vaultId) public {
+        for (uint256 i = 0; i < peerInfo.length; i++) {
+            uint32 eid = peerInfo[i].eid;
+            bytes32 peer = peerInfo[i].peer;
+            messenger.addPeer(vaultId, eid, peer);
+        }
     }
 
-    function deployVaults(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages)
-        public
-        vaultExists(vaultId)
-    {
+    //quote to deploy vaults on multlpe chains vault mst be deploye don hub first
+    function deployVaultsCrossChainQuotes(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote[] memory _composedMessages
+    ) public vaultExists(vaultId) {
+        messenger.bulkTextRegistriesQuote(vaultId, _composedMessages);
+    }
+
+    //should use function called textRegistry instead of vault check make sure used properly
+    function deployVaultCrossChain(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessage[] memory _composedMessages
+    ) public vaultExists(vaultId) {
         bool deployed = messenger.bulkText(vaultId, _composedMessages);
 
         require(deployed, "Cannot dpeloy vaults multichain");
     }
 
-    function recieveText(uint256 vaultId, bytes memory _text) public vaultExists(vaultId) {
-        (bool success,) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
+    function recieveText(
+        uint256 vaultId,
+        bytes memory _text
+    ) public vaultExists(vaultId) {
+        (bool success, ) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
         require(success, "Text could not execute try again!");
     }
+
+    function deposit() public {}
+
+    function withdraw() public {}
+
+    function setStrategy() public {}
 
     function stopVault() public onlyAuhtorized(msg.sender) {}
 
