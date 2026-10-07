@@ -13,7 +13,7 @@ interface IVaultFactory {
 
     function exitStrategy(uint256 vaultId, uint256 strategyId, uint256 assets, bytes memory params) external;
 
-    function deployVaultImplementation() external;
+    function deployVaultImplementation(address endpoint) external;
 
     function deployVault(bytes memory deployVaultParams) external returns (uint256 vaultId, IVaultManager vaultDeployed);
 

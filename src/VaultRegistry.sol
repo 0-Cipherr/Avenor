@@ -16,7 +16,8 @@ import {VaultRegistryMessenger} from "../src/VaultRegistryMessenger.sol";
 import {VaultFactory} from "./VaultFacotry.sol";
 import {IVaultFactory} from "./IVaultFactory.sol";
 import {IVaultRegistryMessenger} from "./IVaultRegistryMessenger.sol";
-import {IVaultManager} from "./IVaultManager.sol";
+import {VaultManager} from "./VaultManager.sol";
+import {IStrategyAdapter} from "../src/IStrategyAdapter.sol";
 
 contract VaultRegistry is Ownable {
     address endpoint;
@@ -65,7 +66,7 @@ contract VaultRegistry is Ownable {
         factory = _factory;
         messenger = _messenger;
         authorized = _authorized;
-        setAddressDependencies(address(this));
+        setAddressDependencies(address(this), _endpoint);
     }
 
     function getVault(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
@@ -81,8 +82,9 @@ contract VaultRegistry is Ownable {
     //important we need noted above to save alot of space for dpeloyment
 
     //sets vault address for each dependency so it can communicate with us especially the messenger
-    function setAddressDependencies(address vaultAddress) public {
+    function setAddressDependencies(address vaultAddress, address _endpoint) public {
         factory.setVault(vaultAddress);
+        factory.deployVaultImplementation(_endpoint);
         messenger.setVault(vaultAddress);
     }
 

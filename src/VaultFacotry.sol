@@ -7,6 +7,7 @@ import {VaultHelper} from "../src/VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {IStrategyAdapter} from "./IStrategyAdapter.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {VaultImplementation} from "./VaultImplementation.sol";
 
 contract VaultFactory {
     //accounting hld in the manager
@@ -38,8 +39,9 @@ contract VaultFactory {
         vaultImplementation = vault;
     }
 
-    function createMockVaultImplementation() private {
-        // VaultManager implementation = new VaultManager();
+    function deployVaultImplementation(address _endpoint) public {
+        VaultManager implementation = new VaultImplementation(_endpoint);
+        vaultImplementation = address(implementation);
     }
 
     function setVaultAddress(uint256 vaultId, address vault) public {
