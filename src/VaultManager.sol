@@ -165,6 +165,7 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, ERC1967Pr
     function depositAssets(uint256 assets, address receiver) public returns (uint256 _shares) {
         //use status check here
         _shares = convertToShares(assets);
+        //transfer from
         bool successfulTransfer = vaultAsset.transferFrom(receiver, msg.sender, assets); //must be approved
         require(successfulTransfer, "Transfer did not go through check approvals;");
         mintShares(_shares, receiver);

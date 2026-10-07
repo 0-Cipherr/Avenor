@@ -158,7 +158,9 @@ contract VaultRegistry is Ownable {
         require(success, "Text could not execute try again!");
     }
 
-    function deposit() public {}
+    function deposit(uint256 vaultId, uint256 assets, address reciever) public {
+        factory.deposit(vaultId, assets, reciever);
+    }
 
     function withdraw() public {}
 

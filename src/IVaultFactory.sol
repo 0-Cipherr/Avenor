@@ -36,4 +36,8 @@ interface IVaultFactory {
     function incrementChangeOwnerChances(address _owner) external;
 
     function getVaultTotalAssets(uint256 vaultId) external view returns (uint256);
+
+    function deposit(uint256 vaultId, uint256 assets, address reciever) external;
+
+    function withdraw() external;
 }
