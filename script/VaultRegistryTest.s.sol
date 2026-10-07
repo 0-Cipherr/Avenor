@@ -26,15 +26,15 @@ contract VaultRegistryTest is Script {
     function run() external {
         vm.startBroadcast();
         registry = block.chainid == 84532
-            ? VaultRegistry(0xE55dE713dcB8027F0deeF02a68381BC3ca6a9a23)
-            : VaultRegistry(0x889A6bFB5eFc76643AF1D4320d013f6D326a500b);
+            ? VaultRegistry(0x5Ba11c7E633de457AE596bff7BAE9Eb763Cf37e7)
+            : VaultRegistry(0x51f79Da3f0556E4Dc317558D2671518151537ba9);
 
         // deployment code here
         address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
         uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
         bytes32 peerAddr = block.chainid == 84532
-            ? addressToBytes32(0x889A6bFB5eFc76643AF1D4320d013f6D326a500b)
-            : addressToBytes32(0xE55dE713dcB8027F0deeF02a68381BC3ca6a9a23);
+            ? addressToBytes32(0x51f79Da3f0556E4Dc317558D2671518151537ba9)
+            : addressToBytes32(0x5Ba11c7E633de457AE596bff7BAE9Eb763Cf37e7);
         address[] memory authorized = new address[](1);
         authorized[0] = (tx.origin);
         // STEP ONE ALWAYS
@@ -58,10 +58,16 @@ contract VaultRegistryTest is Script {
             );
 
         approveAssets(deployedToken, vaultAddress, 1000000000); //approves vault spending for user
-        //system registry => factory => vaults
-        //registry => messenger => oApp instances for each vault  => cross chain communication for each vault
-
-        testVaultDeploymentOutput(vaultInfo); //fill in this function
+        console.log("ALLOWANCE FOR VAULT:");
+        console.logUint(
+            deployedToken.allowance(
+                0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+                vaultAddress
+            )
+        );
+        // system registry => factory => vaults
+        // registry => messenger => oApp instances for each vault  => cross chain communication for each vault
+        testVaultDeploymentOutput(vaultInfo, vaultId, vaultAddress); //fill in this function
         getERC20Balance(
             deployedToken,
             0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
@@ -127,6 +133,7 @@ contract VaultRegistryTest is Script {
             10000,
             0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
         );
+
         vaultInfo = getVaultInfo(vaultId);
         vaultAddress = getVaultAddress(vaultId);
     }
@@ -153,8 +160,13 @@ contract VaultRegistryTest is Script {
     }
 
     function testVaultDeploymentOutput(
-        VaultHelper.Vault memory _vault
+        VaultHelper.Vault memory _vault,
+        uint256 vaultId,
+        address vaultAddress
     ) public pure {
+        console.log("VAULT ID: ");
+        console.logUint(vaultId);
+
         console.log("Creator:          ", _vault.creator);
         console.log("TVL:              ", _vault.tvl);
         console.log("All-Time Volume:  ", _vault.allTimeVolume);
@@ -162,6 +174,8 @@ contract VaultRegistryTest is Script {
         console.log("Name:             ", _vault.name);
         console.log("Ticker:           ", _vault.ticker);
         console.log("Deposit Asset:    ", address(_vault.depositAsset));
+        console.log("Vault Address:");
+        console.logAddress(vaultAddress);
     }
 
     function getVaultInfo(

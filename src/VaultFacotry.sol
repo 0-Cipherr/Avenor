@@ -22,10 +22,15 @@ contract VaultFactory {
     mapping(uint256 => VaultHelper.Vault) vaultsDeployed;
     mapping(uint256 => address) vaultAddress;
     //authorized shold only be the registry
-    constructor(address _authorized, IStrategyAdapter _strategyAdapter) {
+    constructor(
+        address _authorized,
+        IStrategyAdapter _strategyAdapter,
+        address _vaultImplementaiton
+    ) {
         currentVaultId = 0;
         authroized = _authorized;
         strategyAdapter = _strategyAdapter;
+        vaultImplementation = _vaultImplementaiton;
     }
 
     modifier onlyAUhtorized(address attemptedUser) {
