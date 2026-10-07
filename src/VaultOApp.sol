@@ -24,6 +24,15 @@ contract VaultOApp is Ownable, OApp {
 
     function setVaultRegistryMessenger(address _vaultRegistryMessenger) public {
         vaultRegistryMessenger = _vaultRegistryMessenger;
+        updateAuthorized(_vaultRegistryMessenger);
+    }
+
+    function setPeer(uint32 _eid, bytes32 _peer) public virtual override onlyAUhtorized(msg.sender) {
+        // 1. Enforce your custom restriction logic instead of 'onlyOwner'
+
+        // 2. Directly update the internal tracking mapping from OAppCore
+        peers[_eid] = _peer;
+        emit PeerSet(_eid, _peer);
     }
 
     function text(MessagingHelper.ComposedMessage memory _composedMessage) public {

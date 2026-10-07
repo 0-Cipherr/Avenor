@@ -83,7 +83,7 @@ contract VaultRegistry is Ownable {
     }
 
     //need to add all registry peers before making
-    function addRegistryPeer(uint32 eid, bytes32 registryAddr) public {
+    function addRegistryPeer(uint32 eid, bytes32 registryAddr) public onlyOwner {
         peerInfo.push(RegistryPeerInfo(eid, registryAddr));
     }
 

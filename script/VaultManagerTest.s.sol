@@ -8,7 +8,7 @@ import {console} from "forge-std/console.sol";
 import {VaultHelper} from "../src/VaultHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
 import {TokenDeployer} from "../src/TokenDeployer.sol";
-import {VaultRegistry} from "../";
+import {VaultRegistry} from "../src/VaultRegistry.sol";
 
 //idea use bash to run sequence of commands to do stuff
 contract VaultManagerTest is Test {

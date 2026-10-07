@@ -38,14 +38,14 @@ contract VaultInteractionScript is Script {
         public
         returns (StrategyAdapter strategyAdapter, IVaultFactory _factory, IVaultRegistryMessenger _messenger)
     {
-        address _delegate = tx.origin;
+        address _delegate = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
         _enpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
         _endpointId = block.chainid == 84532 ? 40245 : 40231;
-        strategyAdapter = deployStrategyAdapter(tx.origin);
+        strategyAdapter = deployStrategyAdapter(0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         _factory = deployFacotry(tx.origin, strategyAdapter);
-        _messenger = deployMessenger(_enpoint, tx.origin);
+        _messenger = deployMessenger(_enpoint, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         address[] memory authorized = new address[](1);
-        authorized[0] = tx.origin;
+        authorized[0] = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
 
         deployRegistry(_delegate, _enpoint, _endpointId, _factory, _messenger);
 

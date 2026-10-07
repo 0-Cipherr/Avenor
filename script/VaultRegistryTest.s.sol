@@ -12,32 +12,44 @@ import {TokenDeployer} from "../src/TokenDeployer.sol";
 contract VaultRegistryTest is Script {
     VaultRegistry registry;
 
+    //it fucking works keep working hard:
+    //     == Logs ==
+    //   Creator:           0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
+    //   TVL:               0
+    //   All-Time Volume:   0
+    //   Vault Factory:     0x31e19E3d02107b6f735257ca0C0BbDDcF5a9d666
+    //   Name:              TEST
+    //   Ticker:            TST
+    //   Deposit Asset:     0x9b1c96050aB791b2077460dae3B45071C1204b69
+
+    //next flow to test is testing depositing and withdrawing in the vault each step is commented out we must call addPeer before doing anything
     function run() external {
         vm.startBroadcast();
         registry = block.chainid == 84532
-            ? VaultRegistry(0x1cE3733bE7CCeb28F091593f7371A937D65F6B26)
-            : VaultRegistry(0xDFf11047a734D9ED88dD7DEDE3E2C98f2775458e); //condiion  84532 ? 40245 : 40231;
+            ? VaultRegistry(0x704fc210072E90E6f3e9742c0b9a3635Dd195086)
+            : VaultRegistry(0x1eaFFC69302E8402B4052ccbe1a7F2D239A3f5f4); //condiion  84532 ? 40245 : 40231;
 
         // deployment code here
         address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
         uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
         bytes32 peerAddr = block.chainid == 84532
-            ? addressToBytes32(0xDFf11047a734D9ED88dD7DEDE3E2C98f2775458e)
-            : addressToBytes32((0x1cE3733bE7CCeb28F091593f7371A937D65F6B26)); //condiion  84532 ? 40245 : 40231;
+            ? addressToBytes32(0x1eaFFC69302E8402B4052ccbe1a7F2D239A3f5f4)
+            : addressToBytes32((0x704fc210072E90E6f3e9742c0b9a3635Dd195086)); //condiion  84532 ? 40245 : 40231;
         address[] memory authorized = new address[](1);
         authorized[0] = (tx.origin);
-        addRegistryPeer(peerEndpointId, peerAddr);
+        // STEP ONE ALWAYS
+        // addRegistryPeer(peerEndpointId, peerAddr);
 
-        //TEST VAULT CREATION    // uint256 vaultId = testVaultCreationNative(
+        // TEST VAULT CREATION
+        // uint256 vaultId = testVaultCreationNative(
         //     tx.origin,
         //     authorized,
         //     "TEST",
         //     "TST",
-        //     tx.origin,
+        //     0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
         //     endpoint,
         //     VaultAssets.FeesInfo(0, 0),
         //     VaultAssets.feeReceiversInfo(address(0), address(0))
-
         // );
 
         vm.stopBroadcast();

@@ -33,8 +33,13 @@ contract VaultRegistryMessenger is Ownable, OApp {
     //already a endpoitn and delegate variables in oapp incae we need them
     constructor(address _endpoint, address _delegate) Ownable(_delegate) OApp(_endpoint, _delegate) {}
 
+    function updateuahtorized(address _authorized) public {
+        authorized = _authorized;
+    }
+
     function setVault(address _vaultRegistry) public {
         vaultRegistry = IVaultRegistry(_vaultRegistry);
+        updateuahtorized(_vaultRegistry);
     }
 
     function textRegistry(uint256 vaultId, MessagingHelper.ComposedMessage memory _composedMessage)
@@ -89,11 +94,7 @@ contract VaultRegistryMessenger is Ownable, OApp {
 
     //instantiaties oapp for every vault created we need to make sperate instances because one peer per oaap per endpoint
 
-    function registerOapp(address _delegate, uint256 vaultId)
-        public
-        onlyAuhtorized(msg.sender)
-        onlyVaultExists(vaultId)
-    {
+    function registerOapp(address _delegate, uint256 vaultId) public onlyAuhtorized(msg.sender) {
         address _endpoint = address(endpoint);
         VaultOApp registeredOApp = new VaultOApp(_endpoint, _delegate); //rvew this funccton
 
