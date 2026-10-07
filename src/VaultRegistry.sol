@@ -39,10 +39,7 @@ contract VaultRegistry is Ownable {
      * _endpoint id: registry current endpoint id  where it lives
      */
     modifier onlyAuhtorized(address attemptedUser) {
-        require(
-            attemptedUser == authorized || attemptedUser == address(this),
-            "Not authrized to perform "
-        );
+        require(attemptedUser == authorized || attemptedUser == address(this), "Not authrized to perform ");
         _;
     }
 
@@ -71,15 +68,11 @@ contract VaultRegistry is Ownable {
         setAddressDependencies(address(this));
     }
 
-    function getVault(
-        uint256 vaultId
-    ) public view returns (VaultHelper.Vault memory) {
+    function getVault(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
         return factory.getvault(vaultId);
     }
 
-    function getVaultAddress(
-        uint256 vaultId
-    ) public view vaultExists(vaultId) returns (address) {
+    function getVaultAddress(uint256 vaultId) public view vaultExists(vaultId) returns (address) {
         return factory.getVaultAddress(vaultId);
     }
 
@@ -94,18 +87,12 @@ contract VaultRegistry is Ownable {
     }
 
     //need to add all registry peers before making
-    function addRegistryPeer(
-        uint32 eid,
-        bytes32 registryAddr
-    ) public onlyOwner {
+    function addRegistryPeer(uint32 eid, bytes32 registryAddr) public onlyOwner {
         peerInfo.push(RegistryPeerInfo(eid, registryAddr));
     }
 
     //used to get quote to deploy one vault on another chain
-    function vaultDeployQuote(
-        uint256 vaultId,
-        MessagingHelper.ComposedMessageQuote memory _quoteParams
-    )
+    function vaultDeployQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
         public
         onlyAuhtorized(msg.sender)
         vaultExists(vaultId)
@@ -125,10 +112,7 @@ contract VaultRegistry is Ownable {
         vaultExists(vaultId)
         returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
     {
-        _composedMessage = messenger.bulkTextRegistriesQuote(
-            vaultId,
-            _quoteParamsCollection
-        );
+        _composedMessage = messenger.bulkTextRegistriesQuote(vaultId, _quoteParamsCollection);
     }
 
     //deploys vault on the products hub chain
@@ -136,11 +120,8 @@ contract VaultRegistry is Ownable {
     //directyl use factry here since same chain tx
     //before making multichain vaults this must bcreate d first
     //all registries mut be deployed and added as peers before proceeding
-    function deployHubVault(
-        address _owner,
-        bytes memory deployParams
-    ) public returns (uint256) {
-        (uint256 vaultCreatedId, ) = factory.deployVault(deployParams);
+    function deployHubVault(address _owner, bytes memory deployParams) public returns (uint256) {
+        (uint256 vaultCreatedId,) = factory.deployVault(deployParams);
 
         messenger.registerOapp(_owner, vaultCreatedId);
 
@@ -167,20 +148,17 @@ contract VaultRegistry is Ownable {
     }
 
     //should use function called textRegistry instead of vault check make sure used properly
-    function deployVaultCrossChain(
-        uint256 vaultId,
-        MessagingHelper.ComposedMessage[] memory _composedMessages
-    ) public vaultExists(vaultId) {
+    function deployVaultCrossChain(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages)
+        public
+        vaultExists(vaultId)
+    {
         bool deployed = messenger.bulkText(vaultId, _composedMessages);
 
         require(deployed, "Cannot dpeloy vaults multichain");
     }
 
-    function recieveText(
-        uint256 vaultId,
-        bytes memory _text
-    ) public vaultExists(vaultId) {
-        (bool success, ) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
+    function recieveText(uint256 vaultId, bytes memory _text) public vaultExists(vaultId) {
+        (bool success,) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
         require(success, "Text could not execute try again!");
     }
 
