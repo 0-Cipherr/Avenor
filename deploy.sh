@@ -9,9 +9,9 @@ forge script script/VaultInteractionScript.s.sol:VaultInteractionScript \
   --rpc-url "$BASE_SEPOLIA_RPC" \
   --account Avenor_Multi \
   --broadcast \
-  --etherscan-api-key "$ETHERSCAN_API" \
-  --verify \
-  -vvvv
+  # --etherscan-api-key "$ETHERSCAN_API" \
+  # --verify \
+  # -vvvv
 
 echo "=== Base Sepolia deployment complete ==="
 echo "=== Deploying to Arbitrum Sepolia ==="
@@ -20,9 +20,9 @@ forge script script/VaultInteractionScript.s.sol:VaultInteractionScript \
   --rpc-url "$ARB_SEPOLIA_RPC" \
   --account Avenor_Multi \
   --broadcast \
-  --etherscan-api-key "$ETHERSCAN_API" \
-  --verify \
-  -vvvv
+  # --etherscan-api-key "$ETHERSCAN_API" \
+  # --verify \
+  # -vvvv
 
 echo "=== Both deployments finished successfully ==="
 
@@ -31,32 +31,40 @@ echo "=== Both deployments finished successfully ==="
 
 # == Logs Base ==
 #   STEP ONE: Strategy Adapter deployed: 
-#   0xC7f2Cf4845C6db0e1a1e91ED41Bcd0FcC1b0E141
+#   0x5aAdFB43eF8dAF45DD80F4676345b7676f1D70e3
 #   STEP TWO: Facotry Deployed: 
-#   0xdaE97900D4B184c5D2012dcdB658c008966466DD
+#   0xf13D09eD3cbdD1C930d4de74808de1f33B6b3D4f
 #   STEP THREE: Messenger Deployed: 
-#   0x238213078DbD09f2D15F4c14c02300FA1b2A81BB
+#   0x5c4a3C2CD1ffE6aAfDF62b64bb3E620C696c832E
+#   REGISTRY DEPLOYED:
+#   0x6AE5E129054a5dBFCeBb9Dfcb1CE1AA229fB1Ddb
 #   STEP ONE: Strategy Adapter deployed: 
-#   0x81BC905d4Ba48c702Eb82B4cfE8726bBCE819Bad
+#   0x4f643fa345f87ee1F192B1B2684c6414c68fE9b4
 #   STEP TWO: Facotry Deployed: 
-#   0xdb595a4Aa2A760C32D8bfebeE44caE326818529C
+#   0xc33b474Cc440C330D72fda9C8498e1670138fdAb
 #   STEP THREE: Messenger Deployed: 
-#   0x3a2108DF84aa9c1d278533d762b3b2f9A6555331
+#   0xAAE7b9Cb125f1888FD56Ff987E80d1E4AcA7c790
+#   REGISTRY DEPLOYED:
+#   0x1cE3733bE7CCeb28F091593f7371A937D65F6B26
+
+
 
 
 # == Logs ARB ==
 #   STEP ONE: Strategy Adapter deployed: 
-#   0xC7f2Cf4845C6db0e1a1e91ED41Bcd0FcC1b0E141
+#   0x5aAdFB43eF8dAF45DD80F4676345b7676f1D70e3
 #   STEP TWO: Facotry Deployed: 
-#   0xdaE97900D4B184c5D2012dcdB658c008966466DD
+#   0xf13D09eD3cbdD1C930d4de74808de1f33B6b3D4f
 #   STEP THREE: Messenger Deployed: 
-#   0x238213078DbD09f2D15F4c14c02300FA1b2A81BB
+#   0x5c4a3C2CD1ffE6aAfDF62b64bb3E620C696c832E
+#   REGISTRY DEPLOYED:
+#   0x6AE5E129054a5dBFCeBb9Dfcb1CE1AA229fB1Ddb
 #   STEP ONE: Strategy Adapter deployed: 
-#   0x657D72c66aDbD11281fa4341B68C00b3bd589649
+#   0xFE9e97fD7deD0A1943fF354C449aD79A129551cA
 #   STEP TWO: Facotry Deployed: 
-#   0x205FF79CAB7e110cDa60Cb23F2826Af6016CE2Bb
+#   0xbAC5C5D9Edf14D185F728C0cfDB353533873Ae0f
 #   STEP THREE: Messenger Deployed: 
-#   0xCd3A41143Fc01B30CaB00D55E6f45687dca7d480
-
-# ## Setting up 1 EVM.
+#   0x7F34F214551849D42402c5628159B4B928C8B9d5
+#   REGISTRY DEPLOYED:
+#   0xDFf11047a734D9ED88dD7DEDE3E2C98f2775458e
 

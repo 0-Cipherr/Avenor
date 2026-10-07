@@ -68,6 +68,10 @@ contract VaultRegistry is Ownable {
         setAddressDependencies(address(this));
     }
 
+    function getVault(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
+        return factory.getvault(vaultId);
+    }
+
     //initialize each dependenc no need to use interface we create here we makign like this to save space on deployment
     //update instead of using its instances deploy before adding and just use its interfaces
     //important we need noted above to save alot of space for dpeloyment
@@ -79,7 +83,7 @@ contract VaultRegistry is Ownable {
     }
 
     //need to add all registry peers before making
-    function addRegistryPeer(uint32 eid, bytes32 registryAddr) public onlyAuhtorized(msg.sender) {
+    function addRegistryPeer(uint32 eid, bytes32 registryAddr) public {
         peerInfo.push(RegistryPeerInfo(eid, registryAddr));
     }
 
