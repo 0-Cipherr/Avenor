@@ -7,6 +7,7 @@ import {VaultHelper} from "./VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
 import {StrategyHelper} from "./StrategyHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {VaultManager} from "./VaultManager.sol";
 
@@ -40,10 +41,7 @@ contract VaultRegistry is Ownable {
      * _endpoint id: registry current endpoint id  where it lives
      */
     modifier onlyAuhtorized(address attemptedUser) {
-        require(
-            attemptedUser == authorized || attemptedUser == address(this),
-            "Not authrized to perform "
-        );
+        require(attemptedUser == authorized || attemptedUser == address(this), "Not authrized to perform ");
         _;
     }
 
@@ -72,15 +70,11 @@ contract VaultRegistry is Ownable {
         setAddressDependencies(address(this));
     }
 
-    function getVault(
-        uint256 vaultId
-    ) public view returns (VaultHelper.Vault memory) {
+    function getVault(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
         return factory.getvault(vaultId);
     }
 
-    function getVaultAddress(
-        uint256 vaultId
-    ) public view vaultExists(vaultId) returns (address) {
+    function getVaultAddress(uint256 vaultId) public view vaultExists(vaultId) returns (address) {
         return factory.getVaultAddress(vaultId);
     }
 
@@ -99,18 +93,12 @@ contract VaultRegistry is Ownable {
     }
 
     //need to add all registry peers before making
-    function addRegistryPeer(
-        uint32 eid,
-        bytes32 registryAddr
-    ) public onlyOwner {
+    function addRegistryPeer(uint32 eid, bytes32 registryAddr) public onlyOwner {
         peerInfo.push(RegistryPeerInfo(eid, registryAddr));
     }
 
     //used to get quote to deploy one vault on another chain
-    function vaultDeployQuote(
-        uint256 vaultId,
-        MessagingHelper.ComposedMessageQuote memory _quoteParams
-    )
+    function vaultDeployQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
         public
         onlyAuhtorized(msg.sender)
         vaultExists(vaultId)
@@ -130,10 +118,7 @@ contract VaultRegistry is Ownable {
         vaultExists(vaultId)
         returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
     {
-        _composedMessage = messenger.bulkTextRegistriesQuote(
-            vaultId,
-            _quoteParamsCollection
-        );
+        _composedMessage = messenger.bulkTextRegistriesQuote(vaultId, _quoteParamsCollection);
     }
 
     //deploys vault on the products hub chain
@@ -141,11 +126,8 @@ contract VaultRegistry is Ownable {
     //directyl use factry here since same chain tx
     //before making multichain vaults this must bcreate d first
     //all registries mut be deployed and added as peers before proceeding
-    function deployHubVault(
-        address _owner,
-        bytes memory deployParams
-    ) public returns (uint256) {
-        (uint256 vaultCreatedId, ) = factory.deployVault(deployParams);
+    function deployHubVault(address _owner, bytes memory deployParams) public returns (uint256) {
+        (uint256 vaultCreatedId,) = factory.deployVault(deployParams);
 
         messenger.registerOapp(_owner, vaultCreatedId);
 
@@ -172,26 +154,52 @@ contract VaultRegistry is Ownable {
     }
 
     //should use function called textRegistry instead of vault check make sure used properly
-    function deployVaultCrossChain(
-        uint256 vaultId,
-        MessagingHelper.ComposedMessage[] memory _composedMessages
-    ) public vaultExists(vaultId) {
+    function deployVaultCrossChain(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages)
+        public
+        vaultExists(vaultId)
+    {
         bool deployed = messenger.bulkText(vaultId, _composedMessages);
 
         require(deployed, "Cannot dpeloy vaults multichain");
     }
 
-    function recieveText(
-        uint256 vaultId,
-        bytes memory _text
-    ) public vaultExists(vaultId) {
-        (bool success, ) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
+    function recieveText(uint256 vaultId, bytes memory _text) public vaultExists(vaultId) {
+        (bool success,) = address(this).call(_text); //gotta pass in vault id to call try to encode as well
         require(success, "Text could not execute try again!");
     }
 
+    function isApproved(IERC20 asset, uint256 amount, address _spender, address _owner) public view returns (bool) {
+        uint256 _allowance = asset.allowance(_owner, _spender);
+        return amount < _allowance;
+    }
+
+    function userHasEnough(IERC20 asset, uint256 amount, address _spender) public view {
+        uint256 _balance = asset.balanceOf(_spender);
+        require(amount > _balance, "Not enough tokens to transfer");
+    }
+
     function deposit(uint256 vaultId, uint256 assets, address reciever) public {
-        // VaultHelper.Vault
-        factory.deposit(vaultId, assets, reciever);
+        VaultHelper.Vault memory vaultInfo = getVault(vaultId);
+        IERC20 vaultAsset = vaultInfo.depositAsset;
+        bool approved = isApproved(vaultInfo.depositAsset, assets, reciever, address(this));
+        if (approved) {
+            transferAssets(vaultId, assets);
+            approveFacotrySpending(vaultAsset, assets, reciever);
+            factory.deposit(vaultId, assets, reciever);
+        }
+    }
+
+    function approveFacotrySpending(IERC20 asset, uint256 _amount, address _owner) public {
+        bool approved = isApproved(asset, _amount, _owner, address(factory));
+
+        if (!approved) {
+            asset.approve(address(factory), _amount);
+        }
+    }
+
+    function transferAssets(uint256 vaultId, uint256 assets) public {
+        VaultHelper.Vault memory vaultInfo = getVault(vaultId);
+        vaultInfo.depositAsset.transferFrom(msg.sender, address(this), assets);
     }
 
     function withdraw() public {}

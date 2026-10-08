@@ -31,10 +31,7 @@ contract VaultFactory {
     }
 
     modifier onlyAUhtorized(address attemptedUser) {
-        require(
-            attemptedUser == authroized || attemptedUser == vaultRegistry,
-            "Not authrized to perform "
-        );
+        require(attemptedUser == authroized || attemptedUser == vaultRegistry, "Not authrized to perform ");
         _;
     }
 
@@ -65,18 +62,11 @@ contract VaultFactory {
         }
     }
 
-    function setVaultsDeployed(
-        uint256 vaultId,
-        VaultHelper.Vault memory vaultInfo
-    ) public onlyAUhtorized(msg.sender) {
+    function setVaultsDeployed(uint256 vaultId, VaultHelper.Vault memory vaultInfo) public onlyAUhtorized(msg.sender) {
         vaultsDeployed[vaultId] = vaultInfo;
     }
 
-    function setStrategyId(
-        uint256 vaultId,
-        uint256 strategyId,
-        bytes memory depositCallback
-    ) public {
+    function setStrategyId(uint256 vaultId, uint256 strategyId, bytes memory depositCallback) public {
         vaultsDeployed[vaultId].vault.setStrategy(strategyId, depositCallback);
         //witdraw fromcurrent deposits into next
     }
@@ -85,36 +75,20 @@ contract VaultFactory {
         vaultsDeployed[vaultId].vault.depositAssets(assets, receiver);
     }
 
-    function withdraw(
-        uint256 vaultId,
-        uint256 _shares,
-        address receiver,
-        bytes calldata callBackStrategy
-    ) public {
-        vaultsDeployed[vaultId].vault.withdrawAssets(
-            _shares,
-            receiver,
-            callBackStrategy
-        );
+    function withdraw(uint256 vaultId, uint256 _shares, address receiver, bytes calldata callBackStrategy) public {
+        vaultsDeployed[vaultId].vault.withdrawAssets(_shares, receiver, callBackStrategy);
     }
 
-    function deployVault(
-        bytes memory deployVaultParams
-    ) public returns (uint256 vaultId, IVaultManager vaultDeployed) {
+    function deployVault(bytes memory deployVaultParams) public returns (uint256 vaultId, IVaultManager vaultDeployed) {
         require(vaultImplementation != address(0), "No implementation set");
-        VaultHelper.VaultDeployParams memory deployParams = abi.decode(
-            deployVaultParams,
-            (VaultHelper.VaultDeployParams)
-        );
+        VaultHelper.VaultDeployParams memory deployParams =
+            abi.decode(deployVaultParams, (VaultHelper.VaultDeployParams));
         // /eip1167 impelementation upgradable contract save space
         //good standard for factories
 
         address vault = Clones.clone(address((vaultImplementation)));
 
-        VaultManager(payable(vault)).__initialize_vault_(
-            deployParams,
-            strategyAdapter
-        );
+        VaultManager(payable(vault)).__initialize_vault_(deployParams, strategyAdapter);
         (deployParams, strategyAdapter);
 
         vaultDeployed = IVaultManager(vault);
@@ -152,40 +126,25 @@ contract VaultFactory {
         ++currentVaultId;
     }
 
-    function getvault(
-        uint256 vaultId
-    )
-        public
-        view
-        onlyAUhtorized(msg.sender)
-        returns (VaultHelper.Vault memory vault)
-    {
+    function getvault(uint256 vaultId) public view onlyAUhtorized(msg.sender) returns (VaultHelper.Vault memory vault) {
         vault = vaultsDeployed[vaultId];
     }
 
-    function verifyChances(
-        address _owner
-    ) public view onlyAUhtorized(msg.sender) {
+    function verifyChances(address _owner) public view onlyAUhtorized(msg.sender) {
         uint256 chance = getOwnerChangeChances(_owner);
         require(chance < changeOwnerMax, "You ran out of vault owner canges ");
     } //emergency use case one time use
 
-    function changeVaultOwner(
-        uint256 vaultId
-    ) public onlyAUhtorized(msg.sender) {
+    function changeVaultOwner(uint256 vaultId) public onlyAUhtorized(msg.sender) {
         VaultHelper.Vault memory userVault = vaultsDeployed[vaultId];
         incrementChangeOwnerChances(userVault.creator);
     }
 
-    function getOwnerChangeChances(
-        address _owner
-    ) public view onlyAUhtorized(msg.sender) returns (uint256) {
+    function getOwnerChangeChances(address _owner) public view onlyAUhtorized(msg.sender) returns (uint256) {
         return changeOwnerChances[_owner];
     }
 
-    function incrementChangeOwnerChances(
-        address _owner
-    ) public onlyAUhtorized(msg.sender) {
+    function incrementChangeOwnerChances(address _owner) public onlyAUhtorized(msg.sender) {
         changeOwnerChances[_owner] += 1;
     }
 
