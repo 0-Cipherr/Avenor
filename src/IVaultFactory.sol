@@ -41,4 +41,5 @@ interface IVaultFactory {
 
     function withdraw() external;
     function getVaultAddress(uint256 vaultId) external view returns (address);
+    function setVaultImplementation(address implementation) external;
 }

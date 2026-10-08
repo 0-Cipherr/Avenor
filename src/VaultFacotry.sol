@@ -39,11 +39,6 @@ contract VaultFactory {
         vaultImplementation = vault;
     }
 
-    function deployVaultImplementation(address _endpoint) public {
-        VaultManager implementation = new VaultImplementation(_endpoint);
-        vaultImplementation = address(implementation);
-    }
-
     function setVaultAddress(uint256 vaultId, address vault) public {
         vaultAddress[vaultId] = vault;
     }
@@ -158,3 +153,62 @@ contract VaultFactory {
 // configureVault()
 // validateDeployParams()
 //migrate these fucntions from registry tosave space wont deploy cuz of space
+
+// I’ll interpret the deployment-size change and identify why adding the concrete vault-manager setup increased the factory bytecode, while preserving your existing code.
+
+// Searched for regex `VaultFactory|VaultManager|Clones|deployVaultImplementation` (`**/Avenor/src/**`), 40 results
+
+// Read , lines 1 to 155
+
+// Read
+
+// Read
+// //solution for vault deployment for setting the vault implementations thats all we gotta fix
+// The +176-byte increase is consistent with adding the concrete implementation deployment path to the factory: the factory now includes the VaultImplementation constructor and its inheritance/runtime code, while the previous factory only referenced the manager interface and clone mechanism. I’m checking which references can be moved out without changing behavior.
+
+// Read , lines 1 to 120
+
+// ## Cause of the size increase
+
+// The direct deployment in VaultFacoty.sol includes the creation code of VaultImplementation inside the factory:
+
+//     new VaultImplementation(_endpoint)
+
+// Therefore, the factory must carry that implementation’s bytecode, increasing its deployed size by roughly 176 bytes.
+
+// ## Best option without changing the code yet
+
+// Deploy the concrete implementation separately, then call the existing setVaultImplementation function in VaultFacoty.sol.
+
+// Recommended sequence:
+
+// 1. Deploy VaultImplementation with its endpoint.
+// 2. Call factory.setVaultImplementation(addressOfImplementation).
+// 3. Deploy vaults through the existing Clones flow.
+// 4. Avoid calling factory.deployVaultImplementation during factory initialization.
+
+// This keeps the implementation out of the factory’s bytecode and uses the existing setter.
+
+// ## Alternative
+
+// Move the implementation deployment into a separate helper contract:
+
+// - Helper deploys VaultImplementation.
+// - Helper returns its address.
+// - Factory receives only the implementation address.
+// - Factory performs Clones cloning.
+
+// This is cleaner if you want to keep the factory small and make deployment responsibilities explicit.
+
+// ## Important observation
+
+// The factory currently has two ways to configure the implementation:
+
+// - setVaultImplementation(address)
+// - deployVaultImplementation(address)
+
+// The first stores an already deployed implementation. The second embeds the implementation creation code into the factory.
+
+// Therefore, the size problem is caused mainly by using deployVaultImplementation rather than the existing address-based setter.
+
+// > The permanent solution is to deploy VaultImplementation separately and pass its address into setVaultImplementation. This avoids changing the current vault deployment behavior while reducing the factory’s deployed bytecode.

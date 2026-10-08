@@ -66,7 +66,7 @@ contract VaultRegistry is Ownable {
         factory = _factory;
         messenger = _messenger;
         authorized = _authorized;
-        setAddressDependencies(address(this), _endpoint);
+        setAddressDependencies(address(this));
     }
 
     function getVault(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
@@ -77,14 +77,17 @@ contract VaultRegistry is Ownable {
         return factory.getVaultAddress(vaultId);
     }
 
+    function setVaultImplementation(address implementation) public {
+        factory.setVaultImplementation(implementation);
+    }
+
     //initialize each dependenc no need to use interface we create here we makign like this to save space on deployment
     //update instead of using its instances deploy before adding and just use its interfaces
     //important we need noted above to save alot of space for dpeloyment
 
     //sets vault address for each dependency so it can communicate with us especially the messenger
-    function setAddressDependencies(address vaultAddress, address _endpoint) public {
+    function setAddressDependencies(address vaultAddress) public {
         factory.setVault(vaultAddress);
-        factory.deployVaultImplementation(_endpoint);
         messenger.setVault(vaultAddress);
     }
 
