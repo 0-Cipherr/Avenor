@@ -26,15 +26,15 @@ contract VaultRegistryTest is Script {
     function run() external {
         vm.startBroadcast();
         registry = block.chainid == 84532
-            ? VaultRegistry(0x7e26edDCD3B35f07A5D1aCf6d3897224bD76A074)
-            : VaultRegistry(0x0E5DACeb9f28f018ed85A3a25594375f77125Cb8);
+            ? VaultRegistry(0xc1b57CA10d1D4E353E1363464c400DcEdE83E5Ad)
+            : VaultRegistry(0xAD381808dA22b73C65662A2D84CacE6C8fEE9f4d);
 
         // deployment code here
         address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
         uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
         bytes32 peerAddr = block.chainid == 84532
-            ? addressToBytes32(0x0E5DACeb9f28f018ed85A3a25594375f77125Cb8)
-            : addressToBytes32(0x7e26edDCD3B35f07A5D1aCf6d3897224bD76A074);
+            ? addressToBytes32(0xAD381808dA22b73C65662A2D84CacE6C8fEE9f4d)
+            : addressToBytes32(0xc1b57CA10d1D4E353E1363464c400DcEdE83E5Ad);
         address[] memory authorized = new address[](1);
         authorized[0] = (tx.origin);
         // STEP ONE ALWAYS
@@ -102,7 +102,7 @@ contract VaultRegistryTest is Script {
         );
 
         vaultId = registry.deployHubVault(creator, abi.encode(deployParams));
-        testDeposit(vaultId, deployedToken, 10000, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
+        testDeposit(vaultId, 10000, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
 
         vaultInfo = getVaultInfo(vaultId);
         vaultAddress = getVaultAddress(vaultId);
@@ -117,7 +117,7 @@ contract VaultRegistryTest is Script {
         console.logUint(token.balanceOf(user));
     }
 
-    function testDeposit(uint256 vaultId, IERC20 asset, uint256 assets, address reciever) public {
+    function testDeposit(uint256 vaultId, uint256 assets, address reciever) public {
         // asset.approve();
 
         // /we neeed to get the vaults address and set its allowance not towards the registry beofr edoing anything

@@ -183,8 +183,8 @@ contract VaultRegistry is Ownable {
         IERC20 vaultAsset = vaultInfo.depositAsset;
         bool approved = isApproved(vaultInfo.depositAsset, assets, reciever, address(this));
         if (approved) {
-            transferAssets(vaultId, assets);
-            approveFacotrySpending(vaultId, vaultAsset, assets, reciever); //checks and approves spending ing beofre deposit
+            transferAssets(msg.sender, vaultId, assets);
+            approveFacotrySpending(vaultId, vaultAsset, assets, address(this)); //checks and approves spending ing beofre deposit
             factory.deposit(vaultId, assets, reciever);
         }
     }
@@ -197,9 +197,9 @@ contract VaultRegistry is Ownable {
         }
     }
 
-    function transferAssets(uint256 vaultId, uint256 assets) public {
+    function transferAssets(address _caller, uint256 vaultId, uint256 assets) public {
         VaultHelper.Vault memory vaultInfo = getVault(vaultId);
-        vaultInfo.depositAsset.transferFrom(msg.sender, address(this), assets);
+        vaultInfo.depositAsset.transferFrom(_caller, address(this), assets);
     }
 
     function withdraw() public {}
