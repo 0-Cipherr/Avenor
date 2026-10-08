@@ -15,11 +15,14 @@ import {IStrategyAdapter} from "../src/IStrategyAdapter.sol";
 import {VaultHelper} from "../src/VaultHelper.sol";
 import {VaultAssets} from "../src/VaultAssets.sol";
 import {TokenDeployer} from "../src/TokenDeployer.sol";
+import {VaultManager} from "../src/VaultManager.sol";
+import {VaultImplementation} from "../src/VaultImplementation.sol";
 
 contract VaultInteractionScript is Script {
     VaultRegistry registry;
     address _enpoint;
     uint32 _endpointId;
+    IStrategyAdapter adapter;
 
     function run() external {
         vm.startBroadcast();
@@ -32,18 +35,30 @@ contract VaultInteractionScript is Script {
 
     function setUp() public {
         testDeployRegistry();
+        address implementation = deployVaultImplementation(_enpoint);
+        setVaultImplementation(implementation);
     }
 
     function testDeployRegistry()
         public
-        returns (StrategyAdapter strategyAdapter, IVaultFactory _factory, IVaultRegistryMessenger _messenger)
+        returns (
+            StrategyAdapter strategyAdapter,
+            IVaultFactory _factory,
+            IVaultRegistryMessenger _messenger
+        )
     {
         address _delegate = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
         _enpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
         _endpointId = block.chainid == 84532 ? 40245 : 40231;
-        strategyAdapter = deployStrategyAdapter(0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
+        strategyAdapter = deployStrategyAdapter(
+            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
+        );
+        adapter = IStrategyAdapter(address(strategyAdapter));
         _factory = deployFacotry(tx.origin, strategyAdapter);
-        _messenger = deployMessenger(_enpoint, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
+        _messenger = deployMessenger(
+            _enpoint,
+            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
+        );
         address[] memory authorized = new address[](1);
         authorized[0] = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
 
@@ -54,12 +69,13 @@ contract VaultInteractionScript is Script {
 
     function testVaultDeploymentOutput() public {}
 
-    function testDeployRegistryOutput(IVaultFactory factory, IVaultRegistryMessenger messenger, StrategyAdapter adapter)
-        public
-        view
-    {
+    function testDeployRegistryOutput(
+        IVaultFactory factory,
+        IVaultRegistryMessenger messenger,
+        StrategyAdapter _adapter
+    ) public view {
         console.log("STEP ONE: Strategy Adapter deployed: ");
-        console.logAddress(address(adapter));
+        console.logAddress(address(_adapter));
         console.log("STEP TWO: Facotry Deployed: ");
         console.log(address(factory));
         console.log("STEP THREE: Messenger Deployed: ");
@@ -77,16 +93,33 @@ contract VaultInteractionScript is Script {
         registry.addRegistryPeer(endpointId, peer);
     }
 
-    function deployStrategyAdapter(address _delegate) public returns (StrategyAdapter adapter) {
-        adapter = new StrategyAdapter(_delegate);
+    function deployStrategyAdapter(
+        address _delegate
+    ) public returns (StrategyAdapter _adapter) {
+        _adapter = new StrategyAdapter(_delegate);
     }
 
-    function deployFacotry(address _authorized, StrategyAdapter adapter) public returns (IVaultFactory factory) {
-        factory = IVaultFactory(address(new VaultFactory(_authorized, IStrategyAdapter(address(adapter)))));
+    function deployFacotry(
+        address _authorized,
+        StrategyAdapter _adapter
+    ) public returns (IVaultFactory factory) {
+        factory = IVaultFactory(
+            address(
+                new VaultFactory(
+                    _authorized,
+                    IStrategyAdapter(address(_adapter))
+                )
+            )
+        );
     }
 
-    function deployMessenger(address endpoint, address delegate) public returns (IVaultRegistryMessenger messenger) {
-        messenger = IVaultRegistryMessenger(address(new VaultRegistryMessenger(endpoint, delegate)));
+    function deployMessenger(
+        address endpoint,
+        address delegate
+    ) public returns (IVaultRegistryMessenger messenger) {
+        messenger = IVaultRegistryMessenger(
+            address(new VaultRegistryMessenger(endpoint, delegate))
+        );
     }
 
     function deployRegistry(
@@ -96,7 +129,14 @@ contract VaultInteractionScript is Script {
         IVaultFactory _factory,
         IVaultRegistryMessenger _messenger
     ) public {
-        registry = new VaultRegistry(_delegate, __endpoint, __endpointId, _delegate, _factory, _messenger);
+        registry = new VaultRegistry(
+            _delegate,
+            __endpoint,
+            __endpointId,
+            _delegate,
+            _factory,
+            _messenger
+        );
     }
 
     function constructDeployParams(
@@ -111,7 +151,50 @@ contract VaultInteractionScript is Script {
         VaultAssets.feeReceiversInfo memory feeReceivers
     ) public pure returns (VaultHelper.VaultDeployParams memory params) {
         params = VaultHelper.VaultDeployParams(
-            deployer, authorizedVip, vaultName, vaultTicker, vaultAsset, creator, vaultEndpoint, fees, feeReceivers
+            deployer,
+            authorizedVip,
+            vaultName,
+            vaultTicker,
+            vaultAsset,
+            creator,
+            vaultEndpoint,
+            fees,
+            feeReceivers
         );
+    }
+
+    function deployVaultImplementation(
+        address _endpoint
+    ) public returns (address implementation) {
+        VaultManager implementationDeployed = new VaultImplementation(
+            _endpoint
+        );
+        VaultHelper.VaultDeployParams
+            memory _deployParams = constructVaultDeployParamsImplementation();
+        implementation = address(implementationDeployed);
+    }
+
+    function constructVaultDeployParamsImplementation()
+        public
+        view
+        returns (VaultHelper.VaultDeployParams memory _deployParams)
+    {
+        address[] memory authorized = new address[](1);
+        authorized[0] = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
+        _deployParams = VaultHelper.VaultDeployParams(
+            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+            authorized,
+            "Mock",
+            "MCK",
+            IERC20(address(0)),
+            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+            _enpoint,
+            VaultAssets.FeesInfo(0, 0),
+            VaultAssets.feeReceiversInfo(address(0), address(0))
+        );
+    }
+
+    function setVaultImplementation(address implementation) public {
+        registry.setVaultImplementation(implementation);
     }
 }
