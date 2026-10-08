@@ -41,24 +41,15 @@ contract VaultInteractionScript is Script {
 
     function testDeployRegistry()
         public
-        returns (
-            StrategyAdapter strategyAdapter,
-            IVaultFactory _factory,
-            IVaultRegistryMessenger _messenger
-        )
+        returns (StrategyAdapter strategyAdapter, IVaultFactory _factory, IVaultRegistryMessenger _messenger)
     {
         address _delegate = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
         _enpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
         _endpointId = block.chainid == 84532 ? 40245 : 40231;
-        strategyAdapter = deployStrategyAdapter(
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
-        );
+        strategyAdapter = deployStrategyAdapter(0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         adapter = IStrategyAdapter(address(strategyAdapter));
         _factory = deployFacotry(tx.origin, strategyAdapter);
-        _messenger = deployMessenger(
-            _enpoint,
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
-        );
+        _messenger = deployMessenger(_enpoint, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         address[] memory authorized = new address[](1);
         authorized[0] = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
 
@@ -93,33 +84,16 @@ contract VaultInteractionScript is Script {
         registry.addRegistryPeer(endpointId, peer);
     }
 
-    function deployStrategyAdapter(
-        address _delegate
-    ) public returns (StrategyAdapter _adapter) {
+    function deployStrategyAdapter(address _delegate) public returns (StrategyAdapter _adapter) {
         _adapter = new StrategyAdapter(_delegate);
     }
 
-    function deployFacotry(
-        address _authorized,
-        StrategyAdapter _adapter
-    ) public returns (IVaultFactory factory) {
-        factory = IVaultFactory(
-            address(
-                new VaultFactory(
-                    _authorized,
-                    IStrategyAdapter(address(_adapter))
-                )
-            )
-        );
+    function deployFacotry(address _authorized, StrategyAdapter _adapter) public returns (IVaultFactory factory) {
+        factory = IVaultFactory(address(new VaultFactory(_authorized, IStrategyAdapter(address(_adapter)))));
     }
 
-    function deployMessenger(
-        address endpoint,
-        address delegate
-    ) public returns (IVaultRegistryMessenger messenger) {
-        messenger = IVaultRegistryMessenger(
-            address(new VaultRegistryMessenger(endpoint, delegate))
-        );
+    function deployMessenger(address endpoint, address delegate) public returns (IVaultRegistryMessenger messenger) {
+        messenger = IVaultRegistryMessenger(address(new VaultRegistryMessenger(endpoint, delegate)));
     }
 
     function deployRegistry(
@@ -129,14 +103,7 @@ contract VaultInteractionScript is Script {
         IVaultFactory _factory,
         IVaultRegistryMessenger _messenger
     ) public {
-        registry = new VaultRegistry(
-            _delegate,
-            __endpoint,
-            __endpointId,
-            _delegate,
-            _factory,
-            _messenger
-        );
+        registry = new VaultRegistry(_delegate, __endpoint, __endpointId, _delegate, _factory, _messenger);
     }
 
     function constructDeployParams(
@@ -151,26 +118,13 @@ contract VaultInteractionScript is Script {
         VaultAssets.feeReceiversInfo memory feeReceivers
     ) public pure returns (VaultHelper.VaultDeployParams memory params) {
         params = VaultHelper.VaultDeployParams(
-            deployer,
-            authorizedVip,
-            vaultName,
-            vaultTicker,
-            vaultAsset,
-            creator,
-            vaultEndpoint,
-            fees,
-            feeReceivers
+            deployer, authorizedVip, vaultName, vaultTicker, vaultAsset, creator, vaultEndpoint, fees, feeReceivers
         );
     }
 
-    function deployVaultImplementation(
-        address _endpoint
-    ) public returns (address implementation) {
-        VaultManager implementationDeployed = new VaultImplementation(
-            _endpoint
-        );
-        VaultHelper.VaultDeployParams
-            memory _deployParams = constructVaultDeployParamsImplementation();
+    function deployVaultImplementation(address _endpoint) public returns (address implementation) {
+        VaultManager implementationDeployed = new VaultImplementation(_endpoint);
+        VaultHelper.VaultDeployParams memory _deployParams = constructVaultDeployParamsImplementation();
         implementation = address(implementationDeployed);
     }
 
