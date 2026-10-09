@@ -8,8 +8,9 @@ echo "=== Deploying to Base Sepolia ==="
 forge script script/VaultInteractionScript.s.sol:VaultInteractionScript \
   --rpc-url "$BASE_SEPOLIA_RPC" \
   --account Avenor_Multi \
+  --password-file .password \
   --broadcast \
-  -vv
+  -vv \
   # --etherscan-api-key "$ETHERSCAN_API" \
   # --verify \
 
@@ -19,8 +20,9 @@ echo "=== Deploying to Arbitrum Sepolia ==="
 forge script script/VaultInteractionScript.s.sol:VaultInteractionScript \
   --rpc-url "$ARB_SEPOLIA_RPC" \
   --account Avenor_Multi \
+  --password-file .password \
   --broadcast \
-  -vv
+  -vv \
 
   # --etherscan-api-key "$ETHERSCAN_API" \
   # --verify \

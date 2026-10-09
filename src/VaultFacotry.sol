@@ -32,7 +32,10 @@ contract VaultFactory {
     }
 
     modifier onlyAUhtorized(address attemptedUser) {
-        require(attemptedUser == authroized || attemptedUser == vaultRegistry, "Not authrized to perform ");
+        require(
+            attemptedUser == authroized || attemptedUser == vaultRegistry,
+            "Not authrized to perform "
+        );
         _;
     }
 
@@ -54,48 +57,150 @@ contract VaultFactory {
 
     function verifyVault(uint256 vaultId) public view returns (bool isValid) {
         for (uint256 i = 0; i < currentVaultId; i++) {
-            bool isVaultInitiated = vaultsDeployed[i].creator == address(0);
-            if (isVaultInitiated == false && currentVaultId == i) {
+            bool isVaultInitiated = vaultsDeployed[i].creator != address(0); //if doesnt exist defauts to zeor adress
+            if (!isVaultInitiated && currentVaultId == i) {
                 isValid = false;
-            } else if (isVaultInitiated == true && vaultId == i) {
+            } else if (isVaultInitiated && vaultId == i) {
                 isValid = true;
+                break;
             }
         }
     }
 
-    function approveVault(uint256 vaultId, IERC20 asset, uint256 _amount) public {
+    function approveVault(
+        uint256 vaultId,
+        IERC20 asset,
+        uint256 _amount
+    ) public {
         //
         address vault = getVaultAddress(vaultId); //spender is the vault address
         asset.approve(vault, _amount);
     }
 
-    function setVaultsDeployed(uint256 vaultId, VaultHelper.Vault memory vaultInfo) public onlyAUhtorized(msg.sender) {
+    function setVaultsDeployed(
+        uint256 vaultId,
+        VaultHelper.Vault memory vaultInfo
+    ) public onlyAUhtorized(msg.sender) {
         vaultsDeployed[vaultId] = vaultInfo;
     }
 
-    function setStrategyId(uint256 vaultId, uint256 strategyId, bytes memory depositCallback) public {
+    function setStrategyId(
+        uint256 vaultId,
+        uint256 strategyId,
+        bytes memory depositCallback
+    ) public {
         vaultsDeployed[vaultId].vault.setStrategy(strategyId, depositCallback);
         //witdraw fromcurrent deposits into next
     }
 
+    function updateVaultTVL(
+        uint256 vaultId,
+        uint256 value,
+        bool isDeduction
+    ) public {
+        if (isDeduction == false) {
+            vaultsDeployed[vaultId].tvl += value;
+        } else {
+            uint256 TVL = vaultsDeployed[vaultId].tvl;
+            require(TVL - value > 0, "LESS THAN ZERO UNDERFLOW");
+            vaultsDeployed[vaultId].tvl -= value;
+        }
+    }
+
+    function updateVaultallTimeVolume(uint256 vaultId, uint256 amount) public {
+        //only arriba
+        vaultsDeployed[vaultId].allTimeVolume += amount;
+    }
+
+    function updateAuthorized(
+        uint256 vaultId,
+        address user,
+        bool shouldAppend
+    ) public {
+        if (shouldAppend) {
+            vaultsDeployed[vaultId].authorized.push(user);
+        } else {
+            //add logic to remove be cautious and shift the indexes
+        }
+    }
+
+    function transferFromRegistry(
+        IERC20 asset,
+        address _from,
+        address _to,
+        uint256 _amount
+    ) public {
+        asset.transferFrom(_from, _to, _amount);
+    }
+
+    function isApproved(
+        IERC20 _asset,
+        address _owner,
+        address _spender,
+        uint256 _amount
+    ) public view returns (bool) {
+        uint256 allowance = _asset.allowance(_owner, _spender);
+        return _amount <= allowance;
+    }
+
+    error NotApproved(uint256 _amount, uint256 vaultId);
+
     function deposit(uint256 vaultId, uint256 assets, address receiver) public {
+        approveVault(vaultId, assets);
+        vaultsDeployed[vaultId].depositAsset.transferFrom(
+            address(vaultRegistry),
+            address(this),
+            assets
+        );
         vaultsDeployed[vaultId].vault.depositAssets(assets, receiver);
+        updateVaultTVL(vaultId, assets, false);
+        updateVaultallTimeVolume(vaultId, assets);
     }
 
-    function withdraw(uint256 vaultId, uint256 _shares, address receiver, bytes calldata callBackStrategy) public {
-        vaultsDeployed[vaultId].vault.withdrawAssets(_shares, receiver, callBackStrategy);
+    function approveVault(uint256 vaultId, uint256 _amount) public {
+        address _vaultAddress = getVaultAddress(vaultId);
+        IERC20 vaultAsset = vaultsDeployed[vaultId].depositAsset;
+        bool approved = isApproved(
+            vaultAsset,
+            address(this),
+            _vaultAddress,
+            _amount
+        );
+        if (!approved) {
+            vaultAsset.approve(_vaultAddress, _amount);
+        }
     }
 
-    function deployVault(bytes memory deployVaultParams) public returns (uint256 vaultId, IVaultManager vaultDeployed) {
+    function withdraw(
+        uint256 vaultId,
+        uint256 _shares,
+        address receiver,
+        bytes calldata callBackStrategy
+    ) public {
+        vaultsDeployed[vaultId].vault.withdrawAssets(
+            _shares,
+            receiver,
+            callBackStrategy
+        );
+    }
+
+    function deployVault(
+        bytes memory deployVaultParams
+    ) public returns (uint256 vaultId, IVaultManager vaultDeployed) {
         require(vaultImplementation != address(0), "No implementation set");
-        VaultHelper.VaultDeployParams memory deployParams =
-            abi.decode(deployVaultParams, (VaultHelper.VaultDeployParams));
+        VaultHelper.VaultDeployParams memory deployParams = abi.decode(
+            deployVaultParams,
+            (VaultHelper.VaultDeployParams)
+        );
         // /eip1167 impelementation upgradable contract save space
         //good standard for factories
 
         address vault = Clones.clone(address((vaultImplementation)));
 
-        VaultManager(payable(vault)).__initialize_vault_(deployParams, strategyAdapter);
+        VaultManager(payable(vault)).__initialize_vault_(
+            deployParams,
+            strategyAdapter
+        );
         (deployParams, strategyAdapter);
 
         vaultDeployed = IVaultManager(vault);
@@ -133,25 +238,40 @@ contract VaultFactory {
         ++currentVaultId;
     }
 
-    function getvault(uint256 vaultId) public view onlyAUhtorized(msg.sender) returns (VaultHelper.Vault memory vault) {
+    function getvault(
+        uint256 vaultId
+    )
+        public
+        view
+        onlyAUhtorized(msg.sender)
+        returns (VaultHelper.Vault memory vault)
+    {
         vault = vaultsDeployed[vaultId];
     }
 
-    function verifyChances(address _owner) public view onlyAUhtorized(msg.sender) {
+    function verifyChances(
+        address _owner
+    ) public view onlyAUhtorized(msg.sender) {
         uint256 chance = getOwnerChangeChances(_owner);
         require(chance < changeOwnerMax, "You ran out of vault owner canges ");
     } //emergency use case one time use
 
-    function changeVaultOwner(uint256 vaultId) public onlyAUhtorized(msg.sender) {
+    function changeVaultOwner(
+        uint256 vaultId
+    ) public onlyAUhtorized(msg.sender) {
         VaultHelper.Vault memory userVault = vaultsDeployed[vaultId];
         incrementChangeOwnerChances(userVault.creator);
     }
 
-    function getOwnerChangeChances(address _owner) public view onlyAUhtorized(msg.sender) returns (uint256) {
+    function getOwnerChangeChances(
+        address _owner
+    ) public view onlyAUhtorized(msg.sender) returns (uint256) {
         return changeOwnerChances[_owner];
     }
 
-    function incrementChangeOwnerChances(address _owner) public onlyAUhtorized(msg.sender) {
+    function incrementChangeOwnerChances(
+        address _owner
+    ) public onlyAUhtorized(msg.sender) {
         changeOwnerChances[_owner] += 1;
     }
 

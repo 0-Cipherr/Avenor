@@ -124,7 +124,6 @@ contract VaultInteractionScript is Script {
 
     function deployVaultImplementation(address _endpoint) public returns (address implementation) {
         VaultManager implementationDeployed = new VaultImplementation(_endpoint);
-        VaultHelper.VaultDeployParams memory _deployParams = constructVaultDeployParamsImplementation();
         implementation = address(implementationDeployed);
     }
 

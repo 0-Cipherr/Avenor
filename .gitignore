@@ -39,6 +39,7 @@ id_rsa
 *.swp
 *.swo
 .DS_Store
+broadcast/
 
 # ==========================================
 # 6. Miscellaneous & Documentation
@@ -50,5 +51,5 @@ docs/
 .deps/
 .wake/
 
-
+.password
 .env
