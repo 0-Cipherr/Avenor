@@ -55,35 +55,23 @@ contract VaultRegistryTest is Script {
         // TEST VAULT CREATION
         uint256 approveAmount = 10000;
         uint256 depositAmount = 1000;
-        (
-            uint256 vaultId,
-            IERC20 deployedToken,
-            VaultHelper.Vault memory vaultInfo,
-            address vaultAddress
-        ) = testVaultCreationNative(
-                0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
-                authorized,
-                "TEST",
-                "TST",
-                0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
-                endpoint,
-                VaultAssets.FeesInfo(0, 0),
-                VaultAssets.feeReceiversInfo(address(0), address(0))
-            );
+        (uint256 vaultId, IERC20 deployedToken, VaultHelper.Vault memory vaultInfo, address vaultAddress) = testVaultCreationNative(
+            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+            authorized,
+            "TEST",
+            "TST",
+            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+            endpoint,
+            VaultAssets.FeesInfo(0, 0),
+            VaultAssets.feeReceiversInfo(address(0), address(0))
+        );
         approveAssets(deployedToken, address(registry), approveAmount); //approve rregistry before depositing
 
-        testDeposit(
-            vaultId,
-            depositAmount,
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
-        );
+        testDeposit(vaultId, depositAmount, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         // approveAssets(deployedToken, address(vaultInfo.vault), 100000000);
         vaultInfo = getVaultInfo(vaultId);
         testVaultDeploymentOutput(vaultInfo, vaultId, vaultAddress); //fill in this function
-        getERC20Balance(
-            deployedToken,
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
-        );
+        getERC20Balance(deployedToken, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         vm.stopBroadcast();
     }
 
@@ -113,29 +101,12 @@ contract VaultRegistryTest is Script {
         address vaultEndpoint,
         VaultAssets.FeesInfo memory fees,
         VaultAssets.feeReceiversInfo memory feeReceivers
-    )
-        public
-        returns (
-            uint256 vaultId,
-            IERC20 deployedToken,
-            VaultHelper.Vault memory vaultInfo,
-            address vaultAddress
-        )
-    {
+    ) public returns (uint256 vaultId, IERC20 deployedToken, VaultHelper.Vault memory vaultInfo, address vaultAddress) {
         deployedToken = testDeployERC20("Gecko Coin", "GECKO");
         approveAssets(deployedToken, address(registry), 100000000);
-        VaultHelper.VaultDeployParams
-            memory deployParams = constructDeployParams(
-                deployer,
-                authorizedVip,
-                vaultName,
-                vaultTicker,
-                deployedToken,
-                creator,
-                vaultEndpoint,
-                fees,
-                feeReceivers
-            );
+        VaultHelper.VaultDeployParams memory deployParams = constructDeployParams(
+            deployer, authorizedVip, vaultName, vaultTicker, deployedToken, creator, vaultEndpoint, fees, feeReceivers
+        );
 
         vaultId = registry.deployHubVault(creator, abi.encode(deployParams));
         vaultInfo = getVaultInfo(vaultId);
@@ -152,22 +123,17 @@ contract VaultRegistryTest is Script {
         console.logUint(token.balanceOf(user));
     }
 
-    function testDeposit(
-        uint256 vaultId,
-        uint256 assets,
-        address reciever
-    ) public {
+    function testDeposit(uint256 vaultId, uint256 assets, address reciever) public {
         // asset.approve();
 
         // /we neeed to get the vaults address and set its allowance not towards the registry beofr edoing anything
         registry.deposit(vaultId, assets, reciever);
     }
 
-    function testVaultDeploymentOutput(
-        VaultHelper.Vault memory _vault,
-        uint256 vaultId,
-        address vaultAddress
-    ) public pure {
+    function testVaultDeploymentOutput(VaultHelper.Vault memory _vault, uint256 vaultId, address vaultAddress)
+        public
+        pure
+    {
         console.log("VAULT ID: ");
         console.logUint(vaultId);
 
@@ -182,18 +148,13 @@ contract VaultRegistryTest is Script {
         console.logAddress(vaultAddress);
     }
 
-    function getVaultInfo(
-        uint256 vaultId
-    ) public view returns (VaultHelper.Vault memory) {
+    function getVaultInfo(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
         return registry.getVault(vaultId);
     }
 
     function outputVaultInfo() public {}
 
-    function testDeployERC20(
-        string memory name,
-        string memory ticker
-    ) public returns (IERC20) {
+    function testDeployERC20(string memory name, string memory ticker) public returns (IERC20) {
         TokenDeployer deployed = new TokenDeployer(name, ticker);
         deployed.mintTokens(0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d, 100000);
         console.log("miinted 100,000 tokens for deposit on your wallet ");
@@ -202,11 +163,7 @@ contract VaultRegistryTest is Script {
         return tokenDeployed;
     }
 
-    function approveAssets(
-        IERC20 asset,
-        address spender,
-        uint256 value
-    ) public {
+    function approveAssets(IERC20 asset, address spender, uint256 value) public {
         asset.approve(spender, value);
     }
 
@@ -222,15 +179,7 @@ contract VaultRegistryTest is Script {
         VaultAssets.feeReceiversInfo memory feeReceivers
     ) public pure returns (VaultHelper.VaultDeployParams memory params) {
         params = VaultHelper.VaultDeployParams(
-            deployer,
-            authorizedVip,
-            vaultName,
-            vaultTicker,
-            vaultAsset,
-            creator,
-            vaultEndpoint,
-            fees,
-            feeReceivers
+            deployer, authorizedVip, vaultName, vaultTicker, vaultAsset, creator, vaultEndpoint, fees, feeReceivers
         );
     }
 }
