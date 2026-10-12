@@ -59,7 +59,6 @@ contract VaultRegistryTest is Script {
 
         testWithdraw(vaultId, _shares, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
 
-        testVaultDeploymentOutput(vaultInfo, vaultId, vaultAddress); //fill in this function
         getERC20Balance(deployedToken, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
     }
 

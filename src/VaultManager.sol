@@ -109,7 +109,7 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
     {
         bool isStrategyValid = strategyAdapter.verifyStrategyId(strategyId);
         if (isStrategyValid) {
-            strategyAdapter.deposit(vaultId, strateg1e18yId, assets, params);
+            strategyAdapter.deposit(vaultId, strategyId, assets, params);
             if (isInStrategy == false) {
                 activateStrategy(strategyId);
             }
