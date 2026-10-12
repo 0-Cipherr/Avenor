@@ -41,6 +41,8 @@ interface IVaultFactory {
 
     // Core Interaction Mechanics
     function deposit(uint256 vaultId, uint256 assets, address receiver) external;
+    function previewDeposit(uint256 vaultId, uint256 _amount) external view returns (uint256 _shares);
+    function previewWithdraw(uint256 _vaultId, uint256 _amount) external view returns (uint256 _assets);
 
     function withdraw(uint256 vaultId, uint256 _shares, address receiver, bytes calldata callBackStrategy) external;
 
@@ -63,4 +65,8 @@ interface IVaultFactory {
 
     // Placeholders
     function getVaultTotalAssets(uint256 vaultId) external;
+    function getDepositorInfo(uint256 _vaultId, address _depositorInfo)
+        external
+        view
+        returns (VaultHelper.DepositorInfo memory _depositor);
 }

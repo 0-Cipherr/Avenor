@@ -118,6 +118,7 @@ interface IVaultManager {
         bool _payLzToken,
         address _refundAddress
     ) external view returns (MessagingHelper.ComposedMessage memory);
-
+    function previewDeposit(uint256 _assets) external view returns (uint256 _shares);
+    function previewWithdraw(uint256 _shares) external view returns (uint256 _assets);
     function sendMessage(MessagingHelper.ComposedMessage calldata _msg) external returns (MessagingReceipt memory);
 }

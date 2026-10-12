@@ -120,7 +120,6 @@ contract VaultAssets is ERC20Upgradeable, ERC4626Upgradeable {
     function getSharePrice() public view returns (uint256) {
         return (_totalAssets * 1e18) / totalShares;
     }
-    function previewDeposit() public view returns (uint256) {}
 
     function previewDeposit(uint256 _assets) public view override returns (uint256 _shares) {
         _shares = convertToShares(_assets);

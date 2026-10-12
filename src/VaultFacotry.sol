@@ -36,6 +36,22 @@ contract VaultFactory {
         _;
     }
 
+    function previewDeposit(uint256 vaultId, uint256 _amount) public view returns (uint256 _shares) {
+        _shares = vaultsDeployed[vaultId].vault.previewDeposit(_amount);
+    }
+
+    function previewWithdraw(uint256 _vaultId, uint256 _shares) public view returns (uint256 _assets) {
+        _assets = vaultsDeployed[_vaultId].vault.previewWithdraw(_shares);
+    }
+
+    function getDepositorInfo(uint256 _vaultId, address _depositorInfo)
+        public
+        view
+        returns (VaultHelper.DepositorInfo memory _depositor)
+    {
+        _depositor = vaultsDeployed[_vaultId].vault.getDepositorInfo(_depositorInfo);
+    }
+
     function setVaultImplementation(address vault) public {
         vaultImplementation = vault;
     }

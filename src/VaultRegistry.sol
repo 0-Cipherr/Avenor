@@ -70,6 +70,20 @@ contract VaultRegistry is Ownable {
         setAddressDependencies(address(this));
     }
 
+    function previewWithdrawRemote(uint256 vaultId, address _shareOwner, uint256 _shares)
+        public
+        view
+        returns (uint256 _assetsToRecieve)
+    {
+        uint256 _sharesOwned = factory.getDepositorInfo(vaultId, _shareOwner).shares;
+        require(_shares <= _sharesOwned, "Exceeds amount you own!!");
+        _assetsToRecieve = factory.previewWithdraw(vaultId, _shares);
+    }
+
+    function previewDepositRemote(uint256 vaultId, uint256 _assets) public view returns (uint256 _shares) {
+        _shares = factory.previewDeposit(vaultId, _assets);
+    }
+
     function executeBridge() public {} //exectues bridge
 
     function getVault(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
@@ -206,7 +220,9 @@ contract VaultRegistry is Ownable {
         vaultInfo.depositAsset.transferFrom(_caller, address(this), assets);
     }
 
-    function withdraw() public {}
+    function withdraw(uint256 _vaultId, uint256 _shares, address _reciever, bytes memory _callBackStrategy) public {
+        factory.withdraw(_vaultId, _shares, _reciever, _callBackStrategy);
+    }
 
     function setStrategy() public {}
 

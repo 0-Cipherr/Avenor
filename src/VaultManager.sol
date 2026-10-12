@@ -109,7 +109,7 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
     {
         bool isStrategyValid = strategyAdapter.verifyStrategyId(strategyId);
         if (isStrategyValid) {
-            strategyAdapter.deposit(vaultId, strategyId, assets, params);
+            strategyAdapter.deposit(vaultId, strateg1e18yId, assets, params);
             if (isInStrategy == false) {
                 activateStrategy(strategyId);
             }
@@ -229,41 +229,88 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
     }
 
     //_user user performing action
-    function splitRewards(uint256 _amount, address _user) internal {
+    function splitRewards(uint256 _amount, address _user) internal returns (uint256) {
         bool noRecievers = feeRecievers.protocolFee == address(0) && feeRecievers.creatorFee == address(0);
-        if (noRecievers) {
-            (, uint256 protocolFeeDeducted,) = calculateFees(_amount);
+        if (!noRecievers) {
+            (uint256 _total, uint256 protocolFeeDeducted, uint256 creatorFeeDeducted) = calculateFees(_amount);
             //needs approval first remmember in and out
-            vaultAsset.transferFrom(msg.sender, feeRecievers.protocolFee, protocolFeeDeducted); //make sure allowance is set up for user
-            if (_user != address(msg.sender)) {
-                //creators dont pay there own vaults fees would make no sense
-                vaultAsset.transferFrom(msg.sender, feeRecievers.creatorFee, creatorFee);
-            }
+            vaultAsset.transferFrom(address(this), feeRecievers.protocolFee, protocolFeeDeducted); //make sure allowance is set up for user
+            vaultAsset.transferFrom(address(this), feeRecievers.creatorFee, creatorFeeDeducted);
+
+            return _total;
         }
+
+        return 0;
+    }
+
+    modifier verifyWithdrawerBalance(address depositor, uint256 _shares) {
+        VaultHelper.DepositorInfo memory _depositor = getDepositorInfo(depositor);
+        require(_depositor.shares >= _shares, "Not enough shares deposited to withdraw!");
+        _;
+    }
+
+    function transferAssets(address from, address to, uint256 amount) public {
+        bool successfulTransfer = vaultAsset.transferFrom(
+            //send funds to user when done
+            from,
+            to,
+            amount
+        ); //must be approved
+        require(successfulTransfer, "Transfer did not go through check approvals;");
     }
 
     //this is performed with api synchrounosly
     //callback stragey is params if vualt doesnt have enoguh pass into exit stragey to flush funds
-    function withdrawAssets(uint256 _shares, address receiver, bytes memory callBackStrategy, bool backToHub) public {
-        if (!backToHub) {
-            VaultHelper.DepositorInfo memory _depositor = getDepositorInfo(receiver);
-            require(_depositor.shares >= _shares, "Not enough shares deposited to withdraw!");
-            uint256 _total = previewWithdraw(_shares);
-            vaultHasWithdraw(_total, callBackStrategy); //verifies that vault as enough to exit
-            splitRewards(_total, receiver); //splitrewards before paying out
-            bool successfulTransfer = vaultAsset.transferFrom(
-                //send funds to user when done
-                msg.sender,
-                address(this),
-                _total
-            ); //must be approved
-            require(successfulTransfer, "Transfer did not go through check approvals;");
-            setSharesOwned(_shares, receiver, true);
-            setAssetsDeposited(_total, receiver, true);
-            setVolume(receiver, _total);
-            emit VaultHelper.VaultWithdraw(receiver, receiver, receiver, _total, _shares);
-            // withdraw out of vault to user
-        }
+    function withdrawAssets(uint256 _shares, address receiver, bytes memory callBackStrategy)
+        public
+        verifyWithdrawerBalance(receiver, _shares)
+    {
+        uint256 _total = previewWithdraw(_shares);
+        vaultHasWithdraw(_total, callBackStrategy); //verifies that vault as enough to exit
+        uint256 _amountToRecieve = splitRewards(_total, receiver); //splitrewards before paying out
+        transferAssets(address(this), receiver, _amountToRecieve);
+        setSharesOwned(_shares, receiver, true);
+        setAssetsDeposited(_total, receiver, true);
+        setVolume(receiver, _total);
+        emit VaultHelper.VaultWithdraw(receiver, receiver, receiver, _total, _shares);
+    }
+
+    function cusotmCall(address _executor, bytes memory _callSig) public {
+        (bool _success,) = payable(address(_executor)).call{value: 0}(_callSig);
+        require(_success, "Call unsuccessfull");
+    }
+
+    function withdrawCrossChain(uint256 _shares, address receiver, address bridgeAddress, bytes memory bridgeParams)
+        public
+        payable
+    {
+        uint256 _total = super.previewWithdraw(_shares);
+
+        //bridge then credit onchain on other chain we must wait in apiand verify
+        //wait give suer loading til we verify asset is bridge and is on the way
+        cusotmCall(bridgeAddress, bridgeParams); //call the birdge we wanna use to bridge
+        setSharesOwned(_shares, receiver, true);
+        setAssetsDeposited(_total, receiver, true);
+        setVolume(receiver, _total);
+        //message send should be triggered and called alon e on the api we gotta wait for bridge to work before crediting on another chian
+        // sendMessage(_quote); //send message to credit on the other chain and withdraw
+    }
+    //get quote to send message ot credit and transfer on another chian
+
+    function withdrawCrossChainQuote(address _user, uint256 _shares, uint32 _dstEid, bytes memory _options)
+        public
+        view
+        returns (MessagingHelper.ComposedMessage memory quote)
+    {
+        uint256 assetsTotal = previewWithdraw(_shares);
+        bytes memory _message = abi.encodeWithSignature(
+            "withdrawAssets(address,uint256,bytes)",
+            _user,
+            assetsTotal,
+            bytes("") //we shouldnt need since asset is just being bridged no native withraw
+        );
+        (MessagingHelper.ComposedMessage memory fee) = messageQuote(_dstEid, _message, _options, false, _user);
+        quote = fee;
     }
 
     function vaultHasWithdraw(uint256 _assetsTotal, bytes memory params) public {
@@ -271,21 +318,6 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
         if (vaultAssetBalance < _assetsTotal) {
             exitStrategy(currentStrategyId, _assetsTotal, params);
         }
-    }
-
-    function withdrawCrossChainQuote(address _user, uint256 _shares, uint32 _dstEid, bytes memory _options)
-        public
-        view
-        returns (MessagingHelper.ComposedMessage memory _quote)
-    {
-        uint256 assetsTotal = previewWithdraw(_shares);
-        bytes memory _message = abi.encodeWithSignature("payUser(address,uint256)", _user, assetsTotal);
-        (MessagingHelper.ComposedMessage memory fee) = messageQuote(_dstEid, _message, _options, false, _user);
-        _quote = fee;
-    }
-
-    function withdrawCrossChain(MessagingHelper.ComposedMessage memory _quote) public payable {
-        sendMessage(_quote);
     }
 
     //must verify asset is bridged before using or executing
@@ -308,11 +340,11 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
         uint32 _dstEid,
         bytes memory _message,
         bytes memory _options,
-        bool _payLzToken,
+        bool payLzToken,
         address _refundAddress
     ) public view returns (MessagingHelper.ComposedMessage memory) {
-        MessagingFee memory _fee = _quote(_dstEid, _message, _options, _payLzToken);
-        return MessagingHelper.ComposedMessage(_dstEid, _fee, _message, _options, _payLzToken, _refundAddress);
+        MessagingFee memory _fee = _quote(_dstEid, _message, _options, payLzToken);
+        return MessagingHelper.ComposedMessage(_dstEid, _fee, _message, _options, payLzToken, _refundAddress);
     }
 
     function sendMessage(MessagingHelper.ComposedMessage memory _msg) public returns (MessagingReceipt memory) {
