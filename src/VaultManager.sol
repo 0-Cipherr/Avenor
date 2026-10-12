@@ -165,13 +165,17 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
 
     function crossChainDeposit(uint32 _dstEid, uint256 assets, address receiver) public {}
 
-    function depositAssets(uint256 assets, address receiver) public returns (uint256 _shares) {
-        //use status check here
+    function depositAssets(uint256 assets, address receiver, bytes memory strategyParams)
+        public
+        returns (uint256 _shares)
+    {
         _shares = convertToShares(assets);
-        //transfer from
         bool successfulTransfer = vaultAsset.transferFrom(msg.sender, address(this), assets); //must be approved
-        require(successfulTransfer, "Transfer did not go through check approvals;");
-        mintShares(_shares, receiver);
+        require(successfulTransfer, "Transfer did not go through check approvals!");
+        super.mintShares(_shares, receiver);
+        if (isInStrategy) {
+            enterStrategy(receiver, currentStrategyId, assets, strategyParams);
+        }
         if (hasDeposited(receiver) != true) {
             createDepositor(receiver, VaultHelper.DepositorInfo(receiver, assets, _shares, assets));
         } else {
@@ -232,7 +236,7 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
     function splitRewards(uint256 _amount, address _user) internal returns (uint256) {
         bool noRecievers = feeRecievers.protocolFee == address(0) && feeRecievers.creatorFee == address(0);
         if (!noRecievers) {
-            (uint256 _total, uint256 protocolFeeDeducted, uint256 creatorFeeDeducted) = calculateFees(_amount);
+            (uint256 _total, uint256 protocolFeeDeducted, uint256 creatorFeeDeducted) = super.calculateFees(_amount);
             //needs approval first remmember in and out
             vaultAsset.transferFrom(address(this), feeRecievers.protocolFee, protocolFeeDeducted); //make sure allowance is set up for user
             vaultAsset.transferFrom(address(this), feeRecievers.creatorFee, creatorFeeDeducted);
@@ -265,7 +269,7 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
         public
         verifyWithdrawerBalance(receiver, _shares)
     {
-        uint256 _total = previewWithdraw(_shares);
+        uint256 _total = super.previewWithdraw(_shares);
         vaultHasWithdraw(_total, callBackStrategy); //verifies that vault as enough to exit
         uint256 _amountToRecieve = splitRewards(_total, receiver); //splitrewards before paying out
         transferAssets(address(this), receiver, _amountToRecieve);

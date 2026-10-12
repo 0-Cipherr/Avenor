@@ -169,6 +169,8 @@ contract VaultRegistry is Ownable {
         messenger.bulkTextRegistriesQuote(vaultId, _composedMessages);
     }
 
+    function composeCrossChainMessages(uint32[] memory _dstEids) public {}
+
     //should use function called textRegistry instead of vault check make sure used properly
     function deployVaultCrossChain(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages)
         public
