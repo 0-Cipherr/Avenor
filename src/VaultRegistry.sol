@@ -139,6 +139,48 @@ contract VaultRegistry is Ownable {
 
     //used to get quote to deploy multiple vaults on multiple chains
 
+    function composeMessageQuotes(
+        uint32[] memory _dstEids,
+        address[] memory _dstEndpoints,
+        string memory _vaultName,
+        string memory _vaultTicker,
+        IERC20 hubAsset,
+        address _deployer,
+        VaultAssets.FeesInfo memory _fees,
+        VaultAssets.feeReceiversInfo memory _reciever
+    ) public view returns (MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection) {
+        for (uint256 i = 0; i < _dstEids.length; i++) {
+            uint32 currentId = _dstEids[i];
+            bytes memory message = abi.encodeWithSignature("deployHubVault(address,bytes)", _deployer);
+            _quoteParamsCollection[i] = MessagingHelper.ComposedMessageQuote(currentId, message, _deployer, bytes(""));
+            (VaultHelper.VaultDeployParams memory _constructorArg) = constructVaultDeployParams(
+                _deployer, _vaultName, _vaultTicker, hubAsset, _fees, _reciever, _dstEndpoints[i]
+            );
+        }
+    }
+
+    function constructVaultDeployParams(
+        address _deployer,
+        string memory _vaultName,
+        string memory _vaultTicker,
+        IERC20 _vaultAsset,
+        VaultAssets.FeesInfo memory _fees,
+        VaultAssets.feeReceiversInfo memory _reciever,
+        address _endpoint
+    ) public view returns (VaultHelper.VaultDeployParams memory _constructorArg) {
+        address[] memory _auth = new address[](1);
+        _auth[0] = _deployer;
+        _constructorArg = VaultHelper.VaultDeployParams(
+            _deployer, _auth, _vaultName, _vaultTicker, _vaultAsset, _deployer, _endpoint, _fees, _reciever
+        );
+    }
+
+    // struct ComposedMessageQuote {
+    //     uint32 _dstEid;
+    //     bytes _message;
+    //     address _refundAddress;
+    //     bytes _options;
+    // }
     function vaultDeploymentsQuote(
         uint256 vaultId,
         MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection

@@ -8,6 +8,7 @@ import {VaultAssets} from "../src/VaultAssets.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {VaultHelper} from "../src/VaultHelper.sol";
 import {TokenDeployer} from "../src/TokenDeployer.sol";
+import {MessagingHelper} from "../src/MessagingHelper.sol";
 
 contract VaultRegistryTest is Script {
     VaultRegistry registry;
@@ -39,12 +40,74 @@ contract VaultRegistryTest is Script {
             VaultAssets.feeReceiversInfo(address(0), address(0))
         );
 
-        inAndOutNativeTest(vaultId, deployedToken);
+        // inAndOutNativeTest(vaultId, deployedToken);
+
+        //step 3 cross chain deploy
+        crossChainDeployTest(
+            vaultId,
+            [],
+            [],
+            "String Cheese",
+            "CHS",
+            IERC20(address(0)),
+            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+            VaultAssets.FeesInfo(0, 0),
+            VaultAssets.feeReceiversInfo(address(0), address(0))
+        );
 
         vm.stopBroadcast();
     }
 
-    function crossChainDeploy() public {}
+    function crossChainDeployTest(
+        uint256 _vaultId,
+        uint32[] memory _dstEids,
+        address[] memory _dstEndpoints,
+        string memory _vaultName,
+        string memory _vaultTicker,
+        IERC20 hubAsset,
+        address _deployer,
+        VaultAssets.FeesInfo memory _fees,
+        VaultAssets.feeReceiversInfo memory _reciever
+    ) public {
+        (MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection) = composeMessageQuotes(
+            _dstEids, _dstEndpoints, _vaultName, _vaultTicker, hubAsset, _deployer, _fees, _reciever
+        );
+        (MessagingHelper.ComposedMessage[] memory _composedMessage) =
+            registry.vaultDeploymentsQuote(_vaultId, _quoteParamsCollection);
+        outputComposedMessages(_composedMessage);
+        deployVaultCrossChain(_vaultId, _composedMessage);
+    }
+
+    function outputComposedMessages(MessagingHelper.ComposedMessage[] memory composedMessage) public pure {
+        for (uint256 i = 0; i < composedMessage.length; i++) {
+            console.log("dstEid:", composedMessage[i]._dstEid);
+            console.log("fee.nativeFee:", composedMessage[i]._fee.nativeFee);
+            console.log("fee.lzTokenFee:", composedMessage[i]._fee.lzTokenFee);
+            console.logBytes(composedMessage[i]._message);
+            console.logBytes(composedMessage[i]._options);
+            console.log("payInLzToken:", composedMessage[i].payInLzToken);
+            console.log("refundAddress:", composedMessage[i]._refundAddress);
+        }
+    }
+
+    function deployVaultCrossChain(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {
+        registry.deployVaultCrossChain(vaultId, _composedMessages);
+    }
+
+    function composeMessageQuotes(
+        uint32[] memory _dstEids,
+        address[] memory _dstEndpoints,
+        string memory _vaultName,
+        string memory _vaultTicker,
+        IERC20 hubAsset,
+        address _deployer,
+        VaultAssets.FeesInfo memory _fees,
+        VaultAssets.feeReceiversInfo memory _reciever
+    ) public returns (MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection) {
+        _quoteParamsCollection = registry.composeMessageQuotes(
+            _dstEids, _dstEndpoints, _vaultName, _vaultTicker, hubAsset, _deployer, _fees, _reciever
+        );
+    }
 
     function inAndOutNativeTest(uint256 vaultId, IERC20 deployedToken) public {
         uint256 approveAmount = 10000;
