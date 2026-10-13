@@ -78,12 +78,7 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
         __OApp_init(_deployParams.creator); //_deployParams.vaultEndpoint, _deployParams.creator
     }
 
-    function getDepositorInfo(address _user)
-        public
-        view
-        onlyAuhtorized(msg.sender)
-        returns (VaultHelper.DepositorInfo memory)
-    {
+    function getDepositorInfo(address _user) public view returns (VaultHelper.DepositorInfo memory) {
         return depositors[_user];
     }
     // bytes strategyInfo //bytes suppose dot be strategy info struct containing info and addresses
@@ -204,7 +199,7 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
 
     function setAssetsDeposited(uint256 _amount, address _assetOwner, bool isDeducted) public {
         if (isDeducted) {
-            require(depositors[_assetOwner].shares >= _amount, "Not enogh o perform arethmetic");
+            require(_amount > depositors[_assetOwner].shares, "Not enogh o perform arethmetic");
             depositors[_assetOwner].assets -= _amount;
         } else {
             depositors[_assetOwner].assets += _amount;
@@ -239,8 +234,8 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
         if (!noRecievers) {
             (uint256 _total, uint256 protocolFeeDeducted, uint256 creatorFeeDeducted) = super.calculateFees(_amount);
             //needs approval first remmember in and out
-            vaultAsset.transferFrom(address(this), feeRecievers.protocolFee, protocolFeeDeducted); //make sure allowance is set up for user
-            vaultAsset.transferFrom(address(this), feeRecievers.creatorFee, creatorFeeDeducted);
+            vaultAsset.transfer(feeRecievers.protocolFee, protocolFeeDeducted); //make sure allowance is set up for user
+            vaultAsset.transfer(feeRecievers.creatorFee, creatorFeeDeducted);
 
             return _total;
         }
@@ -286,13 +281,18 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
     function withdrawAssets(uint256 _shares, address receiver, bytes memory callBackStrategy) public {
         uint256 _total = super.previewWithdraw(_shares);
         vaultHasWithdraw(_total, callBackStrategy); //verifies that vault as enough to exit
+
         uint256 _amountToRecieve = splitRewards(_total, receiver); //splitrewards before paying out
-        transferAssets(address(this), receiver, _amountToRecieve);
+        _amountToRecieve = _amountToRecieve == 0 ? _total : _amountToRecieve;
+        super.burnTokens(_shares, receiver);
+        require(vaultAsset.transfer(receiver, _amountToRecieve), "Underlying asset transfer failed");
         setSharesOwned(_shares, receiver, true);
         setAssetsDeposited(_total, receiver, true);
         setVolume(receiver, _total);
         emit VaultHelper.VaultWithdraw(receiver, receiver, receiver, _total, _shares);
     }
+
+    function approveVaulSpending(uint256 _amount) public {}
 
     function cusotmCall(address _executor, bytes memory _callSig) public {
         (bool _success,) = payable(address(_executor)).call{value: 0}(_callSig);

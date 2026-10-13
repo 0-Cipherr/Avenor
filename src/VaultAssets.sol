@@ -73,6 +73,7 @@ contract VaultAssets is ERC20Upgradeable, ERC4626Upgradeable {
     } //assets not in a strategy
 
     function mintShares(uint256 _amount, address _minter) public {
+        __totalSupply += _amount;
         shares[_minter] = _amount;
         _mint(_minter, _amount);
     }

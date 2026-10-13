@@ -81,6 +81,14 @@ contract VaultRegistry is Ownable {
         _assetsToRecieve = factory.previewWithdraw(vaultId, _shares);
     }
 
+    function getDepositorInfoRemote(uint256 vaultId, address _depositor)
+        public
+        view
+        returns (VaultHelper.DepositorInfo memory _depositorInfo)
+    {
+        _depositorInfo = factory.getDepositorInfo(vaultId, _depositor);
+    }
+
     function previewDepositRemote(uint256 vaultId, uint256 _assets)
         public
         view

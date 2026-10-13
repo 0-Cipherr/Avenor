@@ -14,20 +14,20 @@ contract VaultRegistryTest is Script {
     address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
     uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
     bytes32 peerAddr = block.chainid == 84532
-        ? addressToBytes32(0x148bc79734add0Ae871bf64979375DEC505eE440)
-        : addressToBytes32(0xC0CFAfb8182B335c3f71d3232EF48F0eC6eFC6ab);
+        ? addressToBytes32(0x3345bf87C2a81da037E5162c00a77E03A5a3242B)
+        : addressToBytes32(0xC34230eb45408304716D64C9b213A2173ed37879);
     address[] authorized = new address[](1);
 
     function run() external {
         vm.startBroadcast();
         registry = block.chainid == 84532
-            ? VaultRegistry(0xC0CFAfb8182B335c3f71d3232EF48F0eC6eFC6ab)
-            : VaultRegistry(0x148bc79734add0Ae871bf64979375DEC505eE440);
+            ? VaultRegistry(0xC34230eb45408304716D64C9b213A2173ed37879)
+            : VaultRegistry(0x3345bf87C2a81da037E5162c00a77E03A5a3242B);
         authorized[0] = (0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
 
         // addRegistryPeer(peerEndpointId, peerAddr);
-        // TEST VAULT CREATION
-        //step one
+        // // TEST VAULT CREATION
+        // //step one
         (uint256 vaultId, IERC20 deployedToken,) = testVaultCreationNative(
             0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
             authorized,
@@ -44,6 +44,8 @@ contract VaultRegistryTest is Script {
         vm.stopBroadcast();
     }
 
+    function crossChainDeploy() public {}
+
     function inAndOutNativeTest(uint256 vaultId, IERC20 deployedToken) public {
         uint256 approveAmount = 10000;
         uint256 depositAmount = 1000;
@@ -52,12 +54,16 @@ contract VaultRegistryTest is Script {
         approveAssets(deployedToken, address(registry), approveAmount); //approve rregistry before depositing
 
         testDeposit(vaultId, depositAmount, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
+        getDepositorInfo(vaultId, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         // approveAssets(deployedToken, address(vaultInfo.vault), 100000000);
         getERC20Balance(deployedToken, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
 
-        testWithdraw(vaultId, _shares, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
+        uint256 _sharesOwned = getDepositorInfo(vaultId, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d).shares;
+
+        testWithdraw(vaultId, _sharesOwned - 1, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
 
         getERC20Balance(deployedToken, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
+        getDepositorInfo(vaultId, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
     }
 
     function crossChainDeposit() public {}
@@ -177,6 +183,20 @@ contract VaultRegistryTest is Script {
         VaultHelper.Vault memory vaultInfo = registry.getVault(vaultId);
         outputVaultInfo(vaultInfo);
         return vaultInfo;
+    }
+
+    function getDepositorInfo(uint256 vaultId, address _depositor) public returns (VaultHelper.DepositorInfo memory) {
+        VaultHelper.DepositorInfo memory depositor = registry.getDepositorInfoRemote(vaultId, _depositor);
+        outputDepositorInfo(depositor);
+        return depositor;
+    }
+
+    function outputDepositorInfo(VaultHelper.DepositorInfo memory _info) internal view {
+        console.log("--- Depositor Info ---");
+        console.log("Depositor Address:", _info.depositor);
+        console.log("Assets           :", _info.assets);
+        console.log("Shares           :", _info.shares);
+        console.log("Asset Volume     :", _info.assetVolume);
     }
 
     function testDeployERC20(string memory name, string memory ticker) public returns (IERC20) {
