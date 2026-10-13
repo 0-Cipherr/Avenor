@@ -73,6 +73,7 @@ contract VaultRegistry is Ownable {
     function previewWithdrawRemote(uint256 vaultId, address _shareOwner, uint256 _shares)
         public
         view
+        vaultExists(vaultId)
         returns (uint256 _assetsToRecieve)
     {
         uint256 _sharesOwned = factory.getDepositorInfo(vaultId, _shareOwner).shares;
@@ -80,7 +81,12 @@ contract VaultRegistry is Ownable {
         _assetsToRecieve = factory.previewWithdraw(vaultId, _shares);
     }
 
-    function previewDepositRemote(uint256 vaultId, uint256 _assets) public view returns (uint256 _shares) {
+    function previewDepositRemote(uint256 vaultId, uint256 _assets)
+        public
+        view
+        vaultExists(vaultId)
+        returns (uint256 _shares)
+    {
         _shares = factory.previewDeposit(vaultId, _assets);
     }
 

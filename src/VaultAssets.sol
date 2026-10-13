@@ -121,29 +121,12 @@ contract VaultAssets is ERC20Upgradeable, ERC4626Upgradeable {
         return (_totalAssets * 1e18) / totalShares;
     }
 
-    function previewDeposit(uint256 _assets) public view override returns (uint256 _shares) {
-        _shares = convertToShares(_assets);
-        //no fees on deposit
-        /**
-         *
-         * @param assets previewDeposit() answers: "If I deposited this amount right now, approximately how many shares would I receive?"
-         */
-    }
-
     function calculateBurn(uint256 _assets) public view returns (uint256 _shares) {
         _shares = (_assets * __totalSupply) / _totalAssets;
     }
 
     function calculateReedem(uint256 _shares) public view returns (uint256 _reedemable) {
         _reedemable = (_shares * _totalAssets) / __totalSupply;
-    }
-
-    function previewWithdraw(uint256 _shares) public view override returns (uint256 _assets) {
-        _assets = convertToAssets(_shares);
-        (uint256 _total,,) = calculateFees(_assets);
-
-        _assets = _total;
-        //previewWithdraw() answers: "How many shares would need to be burned if I withdraw this amount of assets?"
     }
 
     function previewRedeem(uint256 _shares) public view override returns (uint256 _assets) {

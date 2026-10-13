@@ -130,9 +130,8 @@ contract VaultFactory {
     error NotApproved(uint256 _amount, uint256 vaultId);
 
     function deposit(uint256 vaultId, uint256 assets, address receiver) public {
-        approveVault(vaultId, assets);
         vaultsDeployed[vaultId].depositAsset.transferFrom(address(vaultRegistry), address(this), assets);
-        vaultsDeployed[vaultId].vault.depositAssets(assets, receiver);
+        vaultsDeployed[vaultId].vault.depositAssets(assets, receiver, bytes(""));
         updateVaultTVL(vaultId, assets, false);
         updateVaultallTimeVolume(vaultId, assets);
     }

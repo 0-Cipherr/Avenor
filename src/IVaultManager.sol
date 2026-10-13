@@ -2,123 +2,55 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 import {VaultHelper} from "./VaultHelper.sol";
-import {MessagingHelper} from "./MessagingHelper.sol";
 import {IStrategyAdapter} from "./IStrategyAdapter.sol";
 
-import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-
 interface IVaultManager {
-    // =============================================================
-    //                           STRUCTS
-    // =============================================================
+    // --- Events ---
+    event Deposit(address indexed caller, address indexed owner, uint256 assets, uint256 shares);
+    event Withdraw(
+        address indexed caller, address indexed receiver, address indexed owner, uint256 assets, uint256 shares
+    );
 
-    struct Status {
-        bool strategyActive;
-        uint32 endpointId;
-        address endpoint;
-        uint256 strategyId;
-    }
-
-    // =============================================================
-    //                         INITIALIZATION
-    // =============================================================
-
+    // --- Initialization ---
     function __initialize_vault_(
         VaultHelper.VaultDeployParams calldata _deployParams,
         IStrategyAdapter _strategyAdapter
     ) external;
 
-    // =============================================================
-    //                       DEPOSITOR INFO
-    // =============================================================
+    // --- ERC4626 Accounting & Preview Overrides (from VaultAssets) ---
+    function totalAssets() external view returns (uint256);
+    function convertToShares(uint256 assets) external view returns (uint256);
+    function convertToAssets(uint256 shares) external view returns (uint256);
+    function previewDeposit(uint256 assets) external view returns (uint256);
+    function previewMint(uint256 shares) external view returns (uint256);
+    function previewWithdraw(uint256 assets) external view returns (uint256);
+    function previewRedeem(uint256 shares) external view returns (uint256);
 
-    function getDepositorInfo(address _user) external view returns (VaultHelper.DepositorInfo memory);
-
-    function hasDeposited(address _user) external view returns (bool);
-
-    function createDepositor(address _depositor, VaultHelper.DepositorInfo calldata _info) external;
-
-    function setAssetsDeposited(uint256 _amount, address _assetOwner, bool isDeducted) external;
-
-    function setVolume(address _user, uint256 _newVolume) external;
-
-    function setSharesOwned(uint256 _amount, address _shareOwner, bool isDeducted) external;
-
-    function updateDepositorAssets(uint256 _assetAmount, uint256 _shareAmount, address _user) external;
-
-    // =============================================================
-    //                         VAULT INFO
-    // =============================================================
-
-    function getAsset() external view returns (IERC20);
-
-    function getCreator() external view returns (address);
-
-    function getAuthorizer(uint256 index) external view returns (address);
-
-    function setAuthorizer(address authorized) external;
-
-    // =============================================================
-    //                         STRATEGY
-    // =============================================================
-
-    function setStrategy(uint256 strategyId, bytes memory depositCallback) external;
-
+    // --- Strategy Management ---
+    function setStrategy(uint256 strategyId, bytes calldata depositCallback) external;
     function enterStrategy(address _user, uint256 strategyId, uint256 assets, bytes calldata params) external;
-
     function activateStrategy(uint256 strategyId) external;
-
     function deactivateStrategy() external;
-
     function exitStrategy(uint256 strategyId, uint256 assets, bytes calldata params) external;
-
     function emergencyExit(uint256 strategyId, bytes calldata params) external;
-
     function checkStrategyCurrent(address _user, uint256 strategyId, uint256 assets, bytes calldata params) external;
-
-    function getStrategyInfo(uint256 _vaultId) external view returns (VaultHelper.StrategyInfo memory);
-
-    function vaultHasWithdraw(uint256 _assetsTotal, bytes calldata params) external;
-
-    // =============================================================
-    //                           DEPOSITS
-    // =============================================================
-
-    function depositAssets(uint256 assets, address receiver) external returns (uint256 shares);
-
+    function withdrawAssets(uint256 _shares, address receiver, bytes memory callBackStrategy) external;
+    // --- Core Operations ---
+    function depositAssets(uint256 assets, address receiver, bytes calldata strategyParams)
+        external
+        returns (uint256 _shares);
     function crossChainDeposit(uint32 _dstEid, uint256 assets, address receiver) external;
 
-    // =============================================================
-    //                         WITHDRAWALS
-    // =============================================================
-
-    function withdrawAssets(uint256 _shares, address receiver, bytes calldata callBackStrategy) external;
-
-    function withdrawCrossChainQuote(address _user, uint256 _shares, uint32 _dstEid, bytes calldata _options)
-        external
-        view
-        returns (MessagingHelper.ComposedMessage memory);
-
-    function withdrawCrossChain(MessagingHelper.ComposedMessage calldata _quote) external payable;
-
-    function payUser(address _user, uint256 _amount) external returns (bool);
-
-    // =============================================================
-    //                       LAYERZERO
-    // =============================================================
-
+    // --- Access Control & Management ---
     function setPeer(uint32 _eid, address _peer) external;
+    function setAuthorizer(address authorized) external;
+    function createDepositor(address _depositor, VaultHelper.DepositorInfo calldata _info) external;
 
-    function messageQuote(
-        uint32 _dstEid,
-        bytes calldata _message,
-        bytes calldata _options,
-        bool _payLzToken,
-        address _refundAddress
-    ) external view returns (MessagingHelper.ComposedMessage memory);
-    function previewDeposit(uint256 _assets) external view returns (uint256 _shares);
-    function previewWithdraw(uint256 _shares) external view returns (uint256 _assets);
-    function sendMessage(MessagingHelper.ComposedMessage calldata _msg) external returns (MessagingReceipt memory);
+    // --- View Functions ---
+    function getDepositorInfo(address _user) external view returns (VaultHelper.DepositorInfo memory);
+    function getStrategyInfo(uint256 _vaultId) external view returns (VaultHelper.StrategyInfo memory);
+    function getAsset() external view returns (IERC20);
+    function getCreator() external view returns (address);
+    function getAuthorizer(uint256 index) external view returns (address);
 }

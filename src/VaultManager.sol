@@ -25,6 +25,7 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
     address[] authorizedVip; //th api wallet should be inclided
     IERC20 vaultAsset;
     uint256 vaultId;
+    address registry;
 
     IStrategyAdapter strategyAdapter;
     mapping(address => VaultHelper.DepositorInfo) depositors;
@@ -263,12 +264,26 @@ abstract contract VaultManager is OwnableUpgradeable, OAppUpgradeable, VaultAsse
         require(successfulTransfer, "Transfer did not go through check approvals;");
     }
 
+    function previewDeposit(uint256 _assets) public view override returns (uint256 _shares) {
+        _shares = convertToShares(_assets);
+        //no fees on deposit
+        /**
+         *
+         * @param assets previewDeposit() answers: "If I deposited this amount right now, approximately how many shares would I receive?"
+         */
+    }
+
+    function previewWithdraw(uint256 _shares) public view override returns (uint256 _assets) {
+        _assets = convertToAssets(_shares);
+        (uint256 _total,,) = calculateFees(_assets);
+
+        _assets = _total;
+        //previewWithdraw() answers: "How many shares would need to be burned if I withdraw this amount of assets?"
+    }
+
     //this is performed with api synchrounosly
     //callback stragey is params if vualt doesnt have enoguh pass into exit stragey to flush funds
-    function withdrawAssets(uint256 _shares, address receiver, bytes memory callBackStrategy)
-        public
-        verifyWithdrawerBalance(receiver, _shares)
-    {
+    function withdrawAssets(uint256 _shares, address receiver, bytes memory callBackStrategy) public {
         uint256 _total = super.previewWithdraw(_shares);
         vaultHasWithdraw(_total, callBackStrategy); //verifies that vault as enough to exit
         uint256 _amountToRecieve = splitRewards(_total, receiver); //splitrewards before paying out
