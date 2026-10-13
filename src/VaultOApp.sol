@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {
+    OApp,
+    Origin,
+    MessagingFee
+} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {MessagingHelper} from "../src/MessagingHelper.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {OAppUpgradeable} from "../lib/devtools/packages/oapp-evm-upgradeable/contracts/oapp/OAppUpgradeable.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {
+    OAppUpgradeable
+} from "../lib/devtools/packages/oapp-evm-upgradeable/contracts/oapp/OAppUpgradeable.sol";
 
 contract VaultOApp is Ownable, OApp {
     bool PAYINLZTOKEN = false;
@@ -16,7 +24,10 @@ contract VaultOApp is Ownable, OApp {
         require(attemptedUser == authorized, "Not authrized to perform ");
         _;
     }
-    constructor(address _endpoint, address _delegate) Ownable(_delegate) OApp(_endpoint, _delegate) {}
+    constructor(
+        address _endpoint,
+        address _delegate
+    ) Ownable(_delegate) OApp(_endpoint, _delegate) {}
 
     function updateAuthorized(address _delegate) public {
         authorized = _delegate;
@@ -27,7 +38,10 @@ contract VaultOApp is Ownable, OApp {
         updateAuthorized(_vaultRegistryMessenger);
     }
 
-    function setPeer(uint32 _eid, bytes32 _peer) public virtual override onlyAUhtorized(msg.sender) {
+    function setPeer(
+        uint32 _eid,
+        bytes32 _peer
+    ) public virtual override onlyAUhtorized(msg.sender) {
         // 1. Enforce your custom restriction logic instead of 'onlyOwner'
 
         // 2. Directly update the internal tracking mapping from OAppCore
@@ -35,7 +49,9 @@ contract VaultOApp is Ownable, OApp {
         emit PeerSet(_eid, _peer);
     }
 
-    function text(MessagingHelper.ComposedMessage memory _composedMessage) public {
+    function text(
+        MessagingHelper.ComposedMessage memory _composedMessage
+    ) public {
         _lzSend(
             _composedMessage._dstEid,
             _composedMessage._message,
@@ -49,17 +65,27 @@ contract VaultOApp is Ownable, OApp {
         setPeer(dstEid, peer);
     }
 
-    function quoteText(MessagingHelper.ComposedMessageQuote memory _quoteParams)
-        public
-        returns (MessagingHelper.ComposedMessage memory composedMessage)
-    {
+    function quoteText(
+        MessagingHelper.ComposedMessageQuote memory _quoteParams
+    ) public returns (MessagingHelper.ComposedMessage memory composedMessage) {
         bytes memory _options = createOptions();
 
-        MessagingFee memory fee = _quote(_quoteParams._dstEid, _quoteParams._message, _options, PAYINLZTOKEN);
-
-        return constructComposedMessage(
-            _quoteParams._dstEid, fee, _quoteParams._message, _options, PAYINLZTOKEN, _quoteParams._refundAddress
+        MessagingFee memory fee = _quote(
+            _quoteParams._dstEid,
+            _quoteParams._message,
+            _options,
+            PAYINLZTOKEN
         );
+
+        return
+            constructComposedMessage(
+                _quoteParams._dstEid,
+                fee,
+                _quoteParams._message,
+                _options,
+                PAYINLZTOKEN,
+                _quoteParams._refundAddress
+            );
     }
 
     //duplicate functiion remove single it  (dup in VaultRegistry )
@@ -70,17 +96,24 @@ contract VaultOApp is Ownable, OApp {
         bytes memory _options,
         bool payInLzToken,
         address _refundAddress
-    ) public pure returns (MessagingHelper.ComposedMessage memory composedMessage) {
+    )
+        public
+        pure
+        returns (MessagingHelper.ComposedMessage memory composedMessage)
+    {
         composedMessage = MessagingHelper.ComposedMessage(
-            _dstEid, _fee, _message, _options, payInLzToken, _refundAddress
+            _dstEid,
+            _fee,
+            _message,
+            _options,
+            payInLzToken,
+            _refundAddress
         );
     }
 
-    function validateBulkQuote(MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection)
-        public
-        pure
-        returns (bool)
-    {
+    function validateBulkQuote(
+        MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
+    ) public pure returns (bool) {
         bool isValid = false;
 
         for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {}
@@ -88,15 +121,20 @@ contract VaultOApp is Ownable, OApp {
         return isValid;
     }
 
-    function bulkTextQuote(MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection)
+    function bulkTextQuote(
+        MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
+    )
         public
         returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
     {
         bool isValid = validateBulkQuote(_quoteParamsCollection);
         if (isValid) {
             for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {
-                MessagingHelper.ComposedMessageQuote memory currentMessage = _quoteParamsCollection[i];
-                MessagingHelper.ComposedMessage memory quote = quoteText(currentMessage);
+                MessagingHelper.ComposedMessageQuote
+                    memory currentMessage = _quoteParamsCollection[i];
+                MessagingHelper.ComposedMessage memory quote = quoteText(
+                    currentMessage
+                );
 
                 _composedMessage[i] = (quote);
             }
@@ -115,12 +153,9 @@ contract VaultOApp is Ownable, OApp {
          * _executor
          */
         bytes calldata //_extraData
-    )
-        internal
-        override
-    {
+    ) internal override {
         // handle incoming LayerZero message
-        (bool success,) = address(this).call(_message);
+        (bool success, ) = address(vaultRegistryMessenger).call(_message);
 
         require(success, "Message recieved but tx reverted!");
     }
