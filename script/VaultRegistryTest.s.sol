@@ -14,14 +14,12 @@ contract VaultRegistryTest is Script {
     VaultRegistry registry;
     address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
     uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
-    bytes32 peerAddr =
-        block.chainid == 84532
-            ? addressToBytes32(0x5BfAEc598037B66Cf947c16b18CDb5B069147BDA)
-            : addressToBytes32(0xAeBc0eA15Cf2356C90F7d53159217cd7B916ce4f);
-    address peerEndpoint =
-        block.chainid == 84532
-            ? 0x6EDCE65403992e310A62460808c4b910D972f10f
-            : 0x6EDCE65403992e310A62460808c4b910D972f10f;
+    bytes32 peerAddr = block.chainid == 84532
+        ? addressToBytes32(0x5BfAEc598037B66Cf947c16b18CDb5B069147BDA)
+        : addressToBytes32(0xAeBc0eA15Cf2356C90F7d53159217cd7B916ce4f);
+    address peerEndpoint = block.chainid == 84532
+        ? 0x6EDCE65403992e310A62460808c4b910D972f10f
+        : 0x6EDCE65403992e310A62460808c4b910D972f10f;
     address[] authorized = new address[](1);
 
     function run() external {
@@ -78,28 +76,16 @@ contract VaultRegistryTest is Script {
         VaultAssets.FeesInfo memory _fees,
         VaultAssets.feeReceiversInfo memory _reciever
     ) public {
-        (
-            MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
-        ) = composeMessageQuotes(
-                _vaultId,
-                _dstEids,
-                _dstEndpoints,
-                _vaultName,
-                _vaultTicker,
-                hubAsset,
-                _deployer,
-                _fees,
-                _reciever
-            );
-        (MessagingHelper.ComposedMessage[] memory _composedMessage) = registry
-            .vaultDeploymentsQuote(_vaultId, _quoteParamsCollection);
+        (MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection) = composeMessageQuotes(
+            _vaultId, _dstEids, _dstEndpoints, _vaultName, _vaultTicker, hubAsset, _deployer, _fees, _reciever
+        );
+        (MessagingHelper.ComposedMessage[] memory _composedMessage) =
+            registry.vaultDeploymentsQuote(_vaultId, _quoteParamsCollection);
         outputComposedMessages(_composedMessage);
         deployVaultCrossChain(_vaultId, _composedMessage);
     }
 
-    function outputComposedMessages(
-        MessagingHelper.ComposedMessage[] memory composedMessage
-    ) public pure {
+    function outputComposedMessages(MessagingHelper.ComposedMessage[] memory composedMessage) public pure {
         for (uint256 i = 0; i < composedMessage.length; i++) {
             console.log("dstEid:", composedMessage[i]._dstEid);
             console.log("fee.nativeFee:", composedMessage[i]._fee.nativeFee);
@@ -111,10 +97,7 @@ contract VaultRegistryTest is Script {
         }
     }
 
-    function deployVaultCrossChain(
-        uint256 vaultId,
-        MessagingHelper.ComposedMessage[] memory _composedMessages
-    ) public {
+    function deployVaultCrossChain(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {
         registry.deployVaultCrossChain(vaultId, _composedMessages);
     }
 
@@ -128,22 +111,9 @@ contract VaultRegistryTest is Script {
         address _deployer,
         VaultAssets.FeesInfo memory _fees,
         VaultAssets.feeReceiversInfo memory _reciever
-    )
-        public
-        returns (
-            MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
-        )
-    {
+    ) public returns (MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection) {
         _quoteParamsCollection = registry.composeMessageQuotes(
-            vaultId,
-            _dstEids,
-            _dstEndpoints,
-            _vaultName,
-            _vaultTicker,
-            hubAsset,
-            _deployer,
-            _fees,
-            _reciever
+            vaultId, _dstEids, _dstEndpoints, _vaultName, _vaultTicker, hubAsset, _deployer, _fees, _reciever
         );
     }
 
@@ -154,61 +124,34 @@ contract VaultRegistryTest is Script {
 
         approveAssets(deployedToken, address(registry), approveAmount); //approve rregistry before depositing
 
-        testDeposit(
-            vaultId,
-            depositAmount,
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
-        );
+        testDeposit(vaultId, depositAmount, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         getDepositorInfo(vaultId, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         // approveAssets(deployedToken, address(vaultInfo.vault), 100000000);
-        getERC20Balance(
-            deployedToken,
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
-        );
+        getERC20Balance(deployedToken, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
 
-        uint256 _sharesOwned = getDepositorInfo(
-            vaultId,
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
-        ).shares;
+        uint256 _sharesOwned = getDepositorInfo(vaultId, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d).shares;
 
-        testWithdraw(
-            vaultId,
-            _sharesOwned - 1,
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
-        );
+        testWithdraw(vaultId, _sharesOwned - 1, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
 
-        getERC20Balance(
-            deployedToken,
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d
-        );
+        getERC20Balance(deployedToken, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         getDepositorInfo(vaultId, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
     }
 
     function crossChainDeposit() public {}
 
-    function getDepostor()
-        public
-        returns (VaultHelper.DepositorInfo memory _depositor)
-    {}
+    function getDepostor() public returns (VaultHelper.DepositorInfo memory _depositor) {}
 
-    function previewWithdraw(
-        uint256 vaultId,
-        address _sharesOwner,
-        uint256 _shares
-    ) public view returns (uint256 _assetsToRecieve) {
-        _assetsToRecieve = registry.previewWithdrawRemote(
-            vaultId,
-            _sharesOwner,
-            _shares
-        );
+    function previewWithdraw(uint256 vaultId, address _sharesOwner, uint256 _shares)
+        public
+        view
+        returns (uint256 _assetsToRecieve)
+    {
+        _assetsToRecieve = registry.previewWithdrawRemote(vaultId, _sharesOwner, _shares);
         console.log("previewWithdraw():");
         console.logUint(_assetsToRecieve);
     }
 
-    function previewDeposit(
-        uint256 vaultId,
-        uint256 _assets
-    ) public view returns (uint256 _sharesToRecieve) {
+    function previewDeposit(uint256 vaultId, uint256 _assets) public view returns (uint256 _sharesToRecieve) {
         _sharesToRecieve = registry.previewDepositRemote(vaultId, _assets);
         console.log("previewDeposit():");
         console.logUint(_sharesToRecieve);
@@ -240,25 +183,13 @@ contract VaultRegistryTest is Script {
         address vaultEndpoint,
         VaultAssets.FeesInfo memory fees,
         VaultAssets.feeReceiversInfo memory feeReceivers
-    )
-        public
-        returns (uint256 vaultId, IERC20 deployedToken, address vaultAddress)
-    {
+    ) public returns (uint256 vaultId, IERC20 deployedToken, address vaultAddress) {
         console.log("Deploying Vault!");
         deployedToken = testDeployERC20("Gecko Coin", "GECKO");
         approveAssets(deployedToken, address(registry), 100000000);
-        VaultHelper.VaultDeployParams
-            memory deployParams = constructDeployParams(
-                deployer,
-                authorizedVip,
-                vaultName,
-                vaultTicker,
-                deployedToken,
-                creator,
-                vaultEndpoint,
-                fees,
-                feeReceivers
-            );
+        VaultHelper.VaultDeployParams memory deployParams = constructDeployParams(
+            deployer, authorizedVip, vaultName, vaultTicker, deployedToken, creator, vaultEndpoint, fees, feeReceivers
+        );
 
         vaultId = registry.deployHubVault(creator, abi.encode(deployParams));
         getVaultInfo(vaultId);
@@ -276,11 +207,7 @@ contract VaultRegistryTest is Script {
         console.logUint(token.balanceOf(user));
     }
 
-    function testDeposit(
-        uint256 vaultId,
-        uint256 assets,
-        address reciever
-    ) public {
+    function testDeposit(uint256 vaultId, uint256 assets, address reciever) public {
         console.log("Depositing...");
 
         // asset.approve();
@@ -294,11 +221,7 @@ contract VaultRegistryTest is Script {
     }
 
     //api should logically verify actual users alre calling the function
-    function testWithdraw(
-        uint256 vaultId,
-        uint256 _shares,
-        address reciever
-    ) public {
+    function testWithdraw(uint256 vaultId, uint256 _shares, address reciever) public {
         console.log("Withdrawing...");
 
         registry.withdraw(vaultId, _shares, reciever, bytes(""));
@@ -306,11 +229,10 @@ contract VaultRegistryTest is Script {
         console.log("Withdraw Complete");
     }
 
-    function testVaultDeploymentOutput(
-        VaultHelper.Vault memory _vault,
-        uint256 vaultId,
-        address vaultAddress
-    ) public pure {
+    function testVaultDeploymentOutput(VaultHelper.Vault memory _vault, uint256 vaultId, address vaultAddress)
+        public
+        pure
+    {
         console.log("VAULT ID: ");
         console.logUint(vaultId);
         outputVaultInfo(_vault);
@@ -328,27 +250,19 @@ contract VaultRegistryTest is Script {
         console.log("Deposit Asset:    ", address(_vault.depositAsset));
     }
 
-    function getVaultInfo(
-        uint256 vaultId
-    ) public view returns (VaultHelper.Vault memory) {
+    function getVaultInfo(uint256 vaultId) public view returns (VaultHelper.Vault memory) {
         VaultHelper.Vault memory vaultInfo = registry.getVault(vaultId);
         outputVaultInfo(vaultInfo);
         return vaultInfo;
     }
 
-    function getDepositorInfo(
-        uint256 vaultId,
-        address _depositor
-    ) public returns (VaultHelper.DepositorInfo memory) {
-        VaultHelper.DepositorInfo memory depositor = registry
-            .getDepositorInfoRemote(vaultId, _depositor);
+    function getDepositorInfo(uint256 vaultId, address _depositor) public returns (VaultHelper.DepositorInfo memory) {
+        VaultHelper.DepositorInfo memory depositor = registry.getDepositorInfoRemote(vaultId, _depositor);
         outputDepositorInfo(depositor);
         return depositor;
     }
 
-    function outputDepositorInfo(
-        VaultHelper.DepositorInfo memory _info
-    ) internal view {
+    function outputDepositorInfo(VaultHelper.DepositorInfo memory _info) internal view {
         console.log("--- Depositor Info ---");
         console.log("Depositor Address:", _info.depositor);
         console.log("Assets           :", _info.assets);
@@ -356,10 +270,7 @@ contract VaultRegistryTest is Script {
         console.log("Asset Volume     :", _info.assetVolume);
     }
 
-    function testDeployERC20(
-        string memory name,
-        string memory ticker
-    ) public returns (IERC20) {
+    function testDeployERC20(string memory name, string memory ticker) public returns (IERC20) {
         TokenDeployer deployed = new TokenDeployer(name, ticker);
         deployed.mintTokens(0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d, 100000);
         console.log("miinted 100,000 tokens for deposit on your wallet ");
@@ -368,11 +279,7 @@ contract VaultRegistryTest is Script {
         return tokenDeployed;
     }
 
-    function approveAssets(
-        IERC20 asset,
-        address spender,
-        uint256 value
-    ) public {
+    function approveAssets(IERC20 asset, address spender, uint256 value) public {
         asset.approve(spender, value);
     }
 
@@ -388,15 +295,7 @@ contract VaultRegistryTest is Script {
         VaultAssets.feeReceiversInfo memory feeReceivers
     ) public pure returns (VaultHelper.VaultDeployParams memory params) {
         params = VaultHelper.VaultDeployParams(
-            deployer,
-            authorizedVip,
-            vaultName,
-            vaultTicker,
-            vaultAsset,
-            creator,
-            vaultEndpoint,
-            fees,
-            feeReceivers
+            deployer, authorizedVip, vaultName, vaultTicker, vaultAsset, creator, vaultEndpoint, fees, feeReceivers
         );
     }
 }
