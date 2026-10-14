@@ -18,7 +18,11 @@ contract VaultOApp is Ownable, OApp {
         require(attemptedUser == authorized, "Not authrized to perform ");
         _;
     }
-    constructor(address _endpoint, address _delegate) Ownable(_delegate) OApp(_endpoint, _delegate) {}
+    address creator;
+
+    constructor(address _endpoint, address _delegate, address _creator) Ownable(_delegate) OApp(_endpoint, _delegate) {
+        creator = _creator;
+    }
 
     function updateAuthorized(address _delegate) public {
         authorized = _delegate;

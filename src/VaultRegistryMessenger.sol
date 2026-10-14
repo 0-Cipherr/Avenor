@@ -94,7 +94,7 @@ contract VaultRegistryMessenger is Ownable, OApp {
 
     function registerOapp(address _delegate, uint256 vaultId) public onlyAuhtorized(msg.sender) {
         address _endpoint = address(endpoint);
-        VaultOApp registeredOApp = new VaultOApp(_endpoint, _delegate); //rvew this funccton
+        VaultOApp registeredOApp = new VaultOApp(_endpoint, address(this), _delegate); //rvew this funccton
 
         registeredOApp.setVaultRegistryMessenger(address(this));
         deployedOApps[vaultId] = VaultHelper.Destination(registeredOApp, vaultId, true);
@@ -131,7 +131,7 @@ contract VaultRegistryMessenger is Ownable, OApp {
         returns (bool)
     {
         for (uint256 i = 0; i < _quoteParams.length; i++) {
-            MessagingHelper.ComposedMessage memory _currentQuote;
+            MessagingHelper.ComposedMessage memory _currentQuote = _quoteParams[i];
             textRegistry(vaultId, _currentQuote);
         }
 
