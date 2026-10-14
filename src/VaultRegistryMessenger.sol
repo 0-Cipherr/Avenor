@@ -80,7 +80,8 @@ contract VaultRegistryMessenger is Ownable, OApp {
     function bulkTextRegistriesQuote(
         uint256 vaultId,
         MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
-    ) public onlyAuhtorized(msg.sender) returns (MessagingHelper.ComposedMessage[] memory _composedMessage) {
+    ) public view onlyAuhtorized(msg.sender) returns (MessagingHelper.ComposedMessage[] memory _composedMessage) {
+        _composedMessage = new MessagingHelper.ComposedMessage[](_quoteParamsCollection.length);
         for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {
             MessagingHelper.ComposedMessageQuote memory currentMessage = _quoteParamsCollection[i];
             MessagingHelper.ComposedMessage memory quote = deployedOApps[vaultId].oapp.quoteText(currentMessage);

@@ -5,8 +5,10 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {MessagingHelper} from "../src/MessagingHelper.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {OAppUpgradeable} from "../lib/devtools/packages/oapp-evm-upgradeable/contracts/oapp/OAppUpgradeable.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 contract VaultOApp is Ownable, OApp {
+    using OptionsBuilder for bytes;
     bool PAYINLZTOKEN = false;
 
     address vaultRegistryMessenger;
@@ -51,6 +53,7 @@ contract VaultOApp is Ownable, OApp {
 
     function quoteText(MessagingHelper.ComposedMessageQuote memory _quoteParams)
         public
+        view
         returns (MessagingHelper.ComposedMessage memory composedMessage)
     {
         bytes memory _options = createOptions();
@@ -102,7 +105,11 @@ contract VaultOApp is Ownable, OApp {
             }
         }
     }
-    function createOptions() public returns (bytes memory options) {}
+
+    function createOptions() public pure returns (bytes memory) {
+        // Now this syntax will compile perfectly
+        return OptionsBuilder.newOptions().addExecutorLzReceiveOption(3_000_000, 0);
+    }
 
     function _lzReceive(
         Origin calldata,

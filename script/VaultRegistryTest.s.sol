@@ -15,21 +15,21 @@ contract VaultRegistryTest is Script {
     address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
     uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
     bytes32 peerAddr = block.chainid == 84532
-        ? addressToBytes32(0x5BfAEc598037B66Cf947c16b18CDb5B069147BDA)
-        : addressToBytes32(0xAeBc0eA15Cf2356C90F7d53159217cd7B916ce4f);
+        ? addressToBytes32(0x068f5e862E627A2489129fdd9FD6Edb075Ac5900)
+        : addressToBytes32(0x4BaE2493e6A407Bf8DC68901370FC07929bd533d);
     address peerEndpoint = block.chainid == 84532
         ? 0x6EDCE65403992e310A62460808c4b910D972f10f
-        : 0x6EDCE65403992e310A62460808c4b910D972f10f;
+        : 0x207b52c4B6803B2D756A32D1222590b52EADaE44;
     address[] authorized = new address[](1);
 
     function run() external {
         vm.startBroadcast();
         registry = block.chainid == 84532
-            ? VaultRegistry(0xAeBc0eA15Cf2356C90F7d53159217cd7B916ce4f)
-            : VaultRegistry(0x5BfAEc598037B66Cf947c16b18CDb5B069147BDA);
+            ? VaultRegistry(0x4BaE2493e6A407Bf8DC68901370FC07929bd533d)
+            : VaultRegistry(0x068f5e862E627A2489129fdd9FD6Edb075Ac5900);
         authorized[0] = (0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
 
-        // addRegistryPeer(peerEndpointId, peerAddr);
+        //addRegistryPeer(peerEndpointId, peerAddr);
         // // TEST VAULT CREATION
         // // //step one
         // (uint256 vaultId, IERC20 deployedToken, ) = testVaultCreationNative(

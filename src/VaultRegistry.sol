@@ -254,7 +254,6 @@ contract VaultRegistry is Ownable {
 
     function executeCrossChainDeploy(uint256 vaultId, address _owner, bytes memory deployParams) public {
         factory.deployVaultCrossChain(vaultId, deployParams);
-        (uint256 vaultCreatedId,) = factory.deployVault(deployParams);
 
         messenger.registerOapp(_owner, vaultId);
 
