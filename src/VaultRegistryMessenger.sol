@@ -56,7 +56,7 @@ contract VaultRegistryMessenger is Ownable, OApp {
         onlyAuhtorized(msg.sender)
         onlyVaultExists(vaultId)
     {
-        deployedOApps[vaultId].oapp.setOAppPeer(eid, peer);
+        deployedOApps[vaultId].oapp.setPeerOApp(eid, peer);
     }
 
     function bulkTextRegistryQuote() public {}
