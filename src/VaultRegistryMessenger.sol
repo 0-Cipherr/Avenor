@@ -5,15 +5,27 @@ import {IVaultManager} from "./IVaultManager.sol";
 import {VaultManager} from "../src/VaultManager.sol";
 import {VaultHelper} from "../src/VaultHelper.sol";
 import {MessagingHelper} from "./MessagingHelper.sol";
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {
+    OApp,
+    Origin,
+    MessagingFee
+} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {VaultHelper} from "./VaultHelper.sol";
 
 import {VaultOApp} from "./VaultOApp.sol";
 import {IVaultRegistry} from "./IVaultRegistry.sol";
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
-import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
-import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
+import {
+    OptionsBuilder
+} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {
+    SetConfigParam
+} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import {
+    ExecutorConfig
+} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
+import {
+    UlnConfig
+} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 
 //messenger used to handle vault messaging in the vault regitry
 //comminicate messenger t messenger
@@ -29,7 +41,11 @@ contract VaultRegistryMessenger is Ownable, OApp {
     address executor;
     mapping(uint256 => VaultHelper.Destination) deployedOApps;
     modifier onlyAuhtorized(address attemptedUser) {
-        require(attemptedUser == authorized || attemptedUser == address(vaultRegistry), "Not authrized to perform ");
+        require(
+            attemptedUser == authorized ||
+                attemptedUser == address(vaultRegistry),
+            "Not authrized to perform "
+        );
         _;
     }
     modifier onlyVaultExists(uint256 _vaultId) {
@@ -84,7 +100,12 @@ contract VaultRegistryMessenger is Ownable, OApp {
         params[0] = SetConfigParam({
             eid: dstEid,
             configType: 1, // Executor
-            config: abi.encode(ExecutorConfig({maxMessageSize: maxMessageSize, executor: executor}))
+            config: abi.encode(
+                ExecutorConfig({
+                    maxMessageSize: maxMessageSize,
+                    executor: executor
+                })
+            )
         });
         params[1] = SetConfigParam({
             eid: dstEid,
@@ -104,7 +125,10 @@ contract VaultRegistryMessenger is Ownable, OApp {
         endpoint.setConfig(address(this), sendLibrary, params);
     }
 
-    function textMessengerQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
+    function textMessengerQuote(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessageQuote memory _quoteParams
+    )
         public
         view
         onlyAuhtorized(msg.sender)
@@ -113,14 +137,29 @@ contract VaultRegistryMessenger is Ownable, OApp {
         bytes memory options = createOptions();
         _quoteParams._options = options;
 
-        MessagingHelper.ComposedMessage memory fee = deployedOApps[vaultId].oapp.quoteText(_quoteParams);
-
-        composedMessage = fee;
+        MessagingFee memory fee = _quote(
+            _quoteParams._dstEid,
+            _quoteParams._message,
+            _quoteParams._options,
+            false
+        );
+        composedMessage = MessagingHelper.ComposedMessage(
+            _quoteParams._dstEid,
+            fee,
+            _quoteParams._message,
+            _quoteParams._options,
+            false,
+            _quoteParams._refundAddress
+        );
     }
 
     function createOptions() public pure returns (bytes memory) {
         // Now this syntax will compile perfectly
-        return OptionsBuilder.newOptions().addExecutorLzReceiveOption(3_000_000, 0);
+        return
+            OptionsBuilder.newOptions().addExecutorLzReceiveOption(
+                3_000_000,
+                0
+            );
     }
 
     function bulkTextRegistriesQuote(
@@ -130,19 +169,30 @@ contract VaultRegistryMessenger is Ownable, OApp {
         public
         view
         onlyAuhtorized(msg.sender)
-        returns (MessagingHelper.ComposedMessage[] memory _composedMessage, uint256 _total)
+        returns (
+            MessagingHelper.ComposedMessage[] memory _composedMessage,
+            uint256 _total
+        )
     {
-        _composedMessage = new MessagingHelper.ComposedMessage[](_quoteParamsCollection.length);
+        _composedMessage = new MessagingHelper.ComposedMessage[](
+            _quoteParamsCollection.length
+        );
         for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {
-            MessagingHelper.ComposedMessageQuote memory currentMessage = _quoteParamsCollection[i];
-            MessagingHelper.ComposedMessage memory quote = deployedOApps[vaultId].oapp.quoteText(currentMessage);
+            MessagingHelper.ComposedMessageQuote
+                memory currentMessage = _quoteParamsCollection[i];
+            MessagingHelper.ComposedMessage memory quote = deployedOApps[
+                vaultId
+            ].oapp.quoteText(currentMessage);
 
             _composedMessage[i] = (quote);
             _total += quote._fee.nativeFee;
         }
     }
 
-    function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _quoteParams)
+    function bulkText(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessage[] memory _quoteParams
+    )
         external
         payable
         onlyAuhtorized(msg.sender)
@@ -150,19 +200,19 @@ contract VaultRegistryMessenger is Ownable, OApp {
         returns (bool)
     {
         for (uint256 i = 0; i < _quoteParams.length; i++) {
-            MessagingHelper.ComposedMessage memory _currentQuote = _quoteParams[i];
+            MessagingHelper.ComposedMessage memory _currentQuote = _quoteParams[
+                i
+            ];
             textMessengerPeer(vaultId, _currentQuote);
         }
 
         return true;
     }
 
-    function textMessengerPeer(uint256 vaultId, MessagingHelper.ComposedMessage memory _composedMessage)
-        public
-        payable
-        onlyAuhtorized(msg.sender)
-        onlyVaultExists(vaultId)
-    {
+    function textMessengerPeer(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessage memory _composedMessage
+    ) public payable onlyAuhtorized(msg.sender) onlyVaultExists(vaultId) {
         _lzSend(
             _composedMessage._dstEid,
             _composedMessage._message,
@@ -173,7 +223,7 @@ contract VaultRegistryMessenger is Ownable, OApp {
     }
 
     function recieveText(bytes memory call) public {
-        (bool success,) = address(vaultRegistry).call(call); //forwards call to registry
+        (bool success, ) = address(vaultRegistry).call(call); //forwards call to registry
         require(success, "TX reverted could not execute message!");
     }
 
@@ -198,10 +248,7 @@ contract VaultRegistryMessenger is Ownable, OApp {
          * _executor
          */
         bytes calldata //_extraData
-    )
-        internal
-        override
-    {
+    ) internal override {
         // handle incoming LayerZero message
         recieveText(_message);
     }
