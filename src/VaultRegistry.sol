@@ -136,9 +136,15 @@ contract VaultRegistry is Ownable {
         vaultExists(vaultId)
         returns (MessagingHelper.ComposedMessage memory _composedMessage)
     {
-        _composedMessage = messenger.textRegistryQuote(vaultId, _quoteParams);
+        _composedMessage = messenger.textMessengerQuote(vaultId, _quoteParams);
     }
 
+    //must be messenger peer address must be
+    function addMessengerPeer(uint32 dstEid, bytes32 peer) public {
+        for (uint256 i = 0; i < peerInfo.length; i++) {
+            messenger.addPeer(peerInfo.eid, peerInfo.peer);
+        }
+    }
     //used to get quote to deploy multiple vaults on multiple chains
 
     function composeMessageQuotes(
@@ -219,22 +225,10 @@ contract VaultRegistry is Ownable {
     function deployHubVault(address _owner, bytes memory deployParams) public returns (uint256) {
         (uint256 vaultCreatedId,) = factory.deployVault(deployParams);
 
-        messenger.registerOapp(_owner, vaultCreatedId);
-
-        addRegistiryPeersVault(vaultCreatedId); //addd peers upon creation
-
         return vaultCreatedId;
     }
 
     //important we must do after deploying vault
-    function addRegistiryPeersVault(uint256 vaultId) public {
-        for (uint256 i = 0; i < peerInfo.length; i++) {
-            uint32 eid = peerInfo[i].eid;
-            bytes32 peer = peerInfo[i].peer;
-            messenger.addPeer(vaultId, eid, peer);
-            messenger.setVaultDVNNative(vaultId, eid);
-        }
-    }
 
     //quote to deploy vaults on multlpe chains vault mst be deploye don hub first
     function deployVaultsCrossChainQuotes(
