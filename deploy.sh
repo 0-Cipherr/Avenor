@@ -1,33 +1,174 @@
-f#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+set -Eeuo pipefail
+
+# Always resolve project files relative to this script, not the caller's cwd.
+cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+
+if [[ ! -f .env ]]; then
+  echo "Error: .env not found in the project directory." >&2
+  exit 1
+fi
 source .env
 
-echo "=== Deploying to Base Sepolia ==="
+if [[ -z "${BASE_SEPOLIA_RPC:-}" ]]; then
+  echo "Error: BASE_SEPOLIA_RPC is missing from .env." >&2
+  exit 1
+fi
+if [[ -z "${ARB_SEPOLIA_RPC:-}" ]]; then
+  echo "Error: ARB_SEPOLIA_RPC is missing from .env." >&2
+  exit 1
+fi
 
-forge script script/VaultInteractionScript.s.sol:VaultInteractionScript \
-  --rpc-url "$BASE_SEPOLIA_RPC" \
-  --account Avenor_Multi \
-  --password-file .password \
-  --broadcast \
-  -vv \
-  # --etherscan-api-key "$ETHERSCAN_API" \
-  # --verify \
+# Accept the variable already referenced in this script, plus Foundry's usual name.
+ETHERSCAN_API_KEY="${ETHERSCAN_API_KEY:-${ETHERSCAN_API:-}}"
+if [[ -z "$ETHERSCAN_API_KEY" ]]; then
+  echo "Error: set ETHERSCAN_API_KEY (or ETHERSCAN_API) in .env to enable verification." >&2
+  exit 1
+fi
+if [[ ! -f .password ]]; then
+  echo "Error: .password not found in the project directory." >&2
+  exit 1
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "Error: jq is required to read Foundry's deployment records." >&2
+  exit 1
+fi
+if ! command -v curl >/dev/null 2>&1; then
+  echo "Error: curl is required to check BaseScan/Etherscan verification status." >&2
+  exit 1
+fi
 
-echo "=== Base Sepolia deployment complete ==="
-echo "=== Deploying to Arbitrum Sepolia ==="
+check_rpc() {
+  local network_name="$1"
+  local expected_chain_id="$2"
+  local rpc_url="$3"
+  local actual_chain_id
 
-forge script script/VaultInteractionScript.s.sol:VaultInteractionScript \
-  --rpc-url "$ARB_SEPOLIA_RPC" \
-  --account Avenor_Multi \
-  --password-file .password \
-  --broadcast \
-  -vv \
+  echo "=== Checking $network_name RPC connection ==="
+  if ! actual_chain_id="$(cast chain-id --rpc-url "$rpc_url")"; then
+    echo "Error: could not connect to the $network_name RPC. Check its URL/provider in .env." >&2
+    return 1
+  fi
+  if [[ "$actual_chain_id" != "$expected_chain_id" ]]; then
+    echo "Error: $network_name RPC returned chain ID $actual_chain_id; expected $expected_chain_id." >&2
+    return 1
+  fi
+}
 
-  # --etherscan-api-key "$ETHERSCAN_API" \
-  # --verify \
+registry_is_verified() {
+  local address="$1"
+  local chain_id="$2"
+  local response
 
-echo "=== Both deployments finished successfully ==="
+  response="$(curl -fsS --get 'https://api.etherscan.io/v2/api' \
+    --data-urlencode "chainid=$chain_id" \
+    --data-urlencode 'module=contract' \
+    --data-urlencode 'action=getsourcecode' \
+    --data-urlencode "address=$address" \
+    --data-urlencode "apikey=$ETHERSCAN_API_KEY")" || return 1
+
+  jq -e --arg name "VaultRegistry" \
+    '.status == "1" and .result[0].ContractName == $name and .result[0].ABI != "Contract source code not verified"' \
+    <<<"$response" >/dev/null
+}
+
+verify_deployments() {
+  local network_name="$1"
+  local chain_id="$2"
+  local rpc_url="$3"
+  local broadcast_file="broadcast/VaultInteractionScript.s.sol/$chain_id/run-latest.json"
+  local contract_address
+
+  if [[ ! -f "$broadcast_file" ]]; then
+    echo "Error: no Foundry deployment record found at $broadcast_file." >&2
+    return 1
+  fi
+  contract_address="$(jq -r '.transactions[] | select(.contractName == "VaultRegistry" and (.transactionType == "CREATE" or .transactionType == "CREATE2")) | .contractAddress' "$broadcast_file" | tail -n 1)"
+  if [[ -z "$contract_address" || "$contract_address" == "null" ]]; then
+    echo "Error: no VaultRegistry deployment found in $broadcast_file." >&2
+    return 1
+  fi
+  if ! jq -e --arg address "$contract_address" \
+    '[.transactions[] | select(.contractName == "VaultRegistry" and .contractAddress == $address and (.transactionType == "CREATE" or .transactionType == "CREATE2"))] | length == 1' \
+    "$broadcast_file" >/dev/null; then
+    echo "Error: could not identify a unique VaultRegistry deployment in $broadcast_file." >&2
+    return 1
+  fi
+
+  if registry_is_verified "$contract_address" "$chain_id"; then
+    echo "=== VaultRegistry at $contract_address is already verified on $network_name ==="
+    return 0
+  fi
+
+  echo "=== Verifying only VaultRegistry at $contract_address on $network_name ==="
+  if forge verify-contract "$contract_address" "src/VaultRegistry.sol:VaultRegistry" \
+      --rpc-url "$rpc_url" \
+      --chain "$chain_id" \
+      --verifier etherscan \
+      --etherscan-api-key "$ETHERSCAN_API_KEY" \
+      --guess-constructor-args \
+      --watch \
+      -vvv; then
+    return 0
+  fi
+
+  # Foundry also submits to Sourcify; its "contract not found" response can
+  # occur even when Etherscan/BaseScan has accepted and published the source.
+  if registry_is_verified "$contract_address" "$chain_id"; then
+    echo "=== Etherscan/BaseScan confirms VaultRegistry verification; ignoring Sourcify lookup failure ==="
+    return 0
+  fi
+
+  echo "Error: VaultRegistry verification was not confirmed by Etherscan/BaseScan." >&2
+  return 1
+}
+
+deploy_and_verify() {
+  local network_name="$1"
+  local expected_chain_id="$2"
+  local rpc_url="$3"
+
+  check_rpc "$network_name" "$expected_chain_id" "$rpc_url"
+
+  echo "=== Deploying on $network_name ==="
+  forge script script/VaultInteractionScript.s.sol:VaultInteractionScript \
+    --rpc-url "$rpc_url" \
+    --chain-id "$expected_chain_id" \
+    --account Avenor_Multi \
+    --password-file .password \
+    --broadcast \
+    -vvv
+
+  verify_deployments "$network_name" "$expected_chain_id" "$rpc_url"
+  echo "=== $network_name deployment and verification complete ==="
+}
+
+verify_existing() {
+  local network_name="$1"
+  local chain_id="$2"
+  local rpc_url="$3"
+
+  check_rpc "$network_name" "$chain_id" "$rpc_url"
+  verify_deployments "$network_name" "$chain_id" "$rpc_url"
+}
+
+case "${1:-}" in
+  "")
+    deploy_and_verify "Base Sepolia" 84532 "$BASE_SEPOLIA_RPC"
+    deploy_and_verify "Arbitrum Sepolia" 421614 "$ARB_SEPOLIA_RPC"
+    ;;
+  --verify-existing)
+    verify_existing "Base Sepolia" 84532 "$BASE_SEPOLIA_RPC"
+    verify_existing "Arbitrum Sepolia" 421614 "$ARB_SEPOLIA_RPC"
+    ;;
+  *)
+    echo "Usage: $0 [--verify-existing]" >&2
+    exit 2
+    ;;
+esac
+
+echo "=== Both networks finished successfully; verification results were awaited ==="
 
 
 

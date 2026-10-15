@@ -6,6 +6,9 @@ import {MessagingHelper} from "../src/MessagingHelper.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {OAppUpgradeable} from "../lib/devtools/packages/oapp-evm-upgradeable/contracts/oapp/OAppUpgradeable.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
+import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 
 contract VaultOApp is Ownable, OApp {
     using OptionsBuilder for bytes;
@@ -33,6 +36,41 @@ contract VaultOApp is Ownable, OApp {
         updateAuthorized(_vaultRegistryMessenger);
     }
 
+    function configureSendPath(
+        uint32 dstEid,
+        address sendLibrary,
+        address executor,
+        uint32 maxMessageSize,
+        uint64 confirmations,
+        address requiredDvn
+    ) external onlyOwner {
+        address[] memory requiredDvns = new address[](1);
+        requiredDvns[0] = requiredDvn;
+
+        SetConfigParam[] memory params = new SetConfigParam[](2);
+        params[0] = SetConfigParam({
+            eid: dstEid,
+            configType: 1, // Executor
+            config: abi.encode(ExecutorConfig({maxMessageSize: maxMessageSize, executor: executor}))
+        });
+        params[1] = SetConfigParam({
+            eid: dstEid,
+            configType: 2, // ULN/DVN
+            config: abi.encode(
+                UlnConfig({
+                    confirmations: confirmations,
+                    requiredDVNCount: 1,
+                    optionalDVNCount: type(uint8).max, // explicitly no optional DVNs
+                    optionalDVNThreshold: 0,
+                    requiredDVNs: requiredDvns,
+                    optionalDVNs: new address[](0)
+                })
+            )
+        });
+
+        endpoint.setConfig(address(this), sendLibrary, params);
+    }
+
     function setPeerOApp(uint32 _eid, bytes32 _peer) public virtual onlyAUhtorized(msg.sender) {
         // 1. Enforce your custom restriction logic instead of 'onlyOwner'
 
@@ -41,7 +79,7 @@ contract VaultOApp is Ownable, OApp {
         emit PeerSet(_eid, _peer);
     }
 
-    function text(MessagingHelper.ComposedMessage memory _composedMessage) public {
+    function text(MessagingHelper.ComposedMessage memory _composedMessage) public payable {
         _lzSend(
             _composedMessage._dstEid,
             _composedMessage._message,

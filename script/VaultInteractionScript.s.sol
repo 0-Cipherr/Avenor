@@ -49,13 +49,60 @@ contract VaultInteractionScript is Script {
         strategyAdapter = deployStrategyAdapter(0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
         adapter = IStrategyAdapter(address(strategyAdapter));
         _factory = deployFacotry(tx.origin, strategyAdapter);
-        _messenger = deployMessenger(_enpoint, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
+        ConfigDVN memory _options = getDvnConfig();
+        _messenger = deployMessenger(_enpoint, 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d, _options);
         address[] memory authorized = new address[](1);
         authorized[0] = 0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d;
 
         deployRegistry(_delegate, _enpoint, _endpointId, _factory, _messenger);
 
         testDeployRegistryOutput(_factory, _messenger, strategyAdapter);
+    }
+
+    struct ConfigDVN {
+        uint32 dstEid;
+        address sendLibrary;
+        address executor;
+        uint32 maxMessageSize;
+        uint64 confirmations;
+        address requiredDvn;
+    }
+
+    // For `configureSendPath(...)`:
+
+    // - `dstEid`: LayerZero ID of the **destination chain**. For your Base Sepolia → Arbitrum Sepolia route, that’s `40231`.
+    // - `sendLibrary`: The LayerZero send library used on the **source chain** for this route. Get the correct address from LayerZero’s deployment info; don’t guess.
+    // - `executor`: The Executor address for the route. It handles delivering the message on the destination chain.
+    // - `maxMessageSize`: Maximum message size the Executor allows, in bytes. Use the supported route’s recommended value.
+    // - `confirmations`: How many source-chain block confirmations the DVN should wait for before verifying the message.
+    // - `requiredDvn`: The DVN that must verify the message. The example requires one DVN.
+
+    // Inside the function:
+
+    // - `address(this)`: This `VaultOApp`—the app being configured.
+    // - `configType: 1`: This config entry is for the Executor.
+    // - `configType: 2`: This entry is for ULN/DVN security settings.
+    // - `requiredDVNCount: 1`: Exactly one required DVN is supplied.
+    // - `optionalDVNCount: type(uint8).max` and `optionalDVNThreshold: 0`: Explicitly say there are no optional DVNs.
+    // - `requiredDVNs` and `optionalDVNs`: The lists of required and optional DVN addresses.
+
+    // The destination’s receive config is similar, but uses the **source EID** (`40245` for Base Sepolia) and the destination OApp’s receive library. The OApp’s Messenger owner/delegate must make these calls.
+    function getDvnConfig() public view returns (ConfigDVN memory) {
+        uint32 _dstEid = block.chainid == 84532 ? 40231 : 40245;
+        address sendLibrary = block.chainid == 84532
+            ? 0xC1868e054425D378095A003EcbA3823a5D0135C9
+            : 0x4f7cd4DA19ABB31b0eC98b9066B9e857B1bf9C0E;
+        address executor = block.chainid == 84532
+            ? 0x8A3D588D9f6AC041476b094f97FF94ec30169d3D
+            : 0x5Df3a1cEbBD9c8BA7F8dF51Fd632A9aef8308897;
+        uint32 maxMessageSize = 10_000;
+        uint64 confirmations = 5;
+        address requiredDvn = block.chainid == 84532
+            ? 0xe1a12515F9AB2764b887bF60B923Ca494EBbB2d6
+            : 0x53f488E93b4f1b60E8E83aa374dBe1780A1EE8a8;
+
+        ConfigDVN memory _config = ConfigDVN(_dstEid, sendLibrary, executor, maxMessageSize, confirmations, requiredDvn);
+        return _config;
     }
 
     function testVaultDeploymentOutput() public {}
@@ -92,8 +139,23 @@ contract VaultInteractionScript is Script {
         factory = IVaultFactory(address(new VaultFactory(_authorized, IStrategyAdapter(address(_adapter)))));
     }
 
-    function deployMessenger(address endpoint, address delegate) public returns (IVaultRegistryMessenger messenger) {
-        messenger = IVaultRegistryMessenger(address(new VaultRegistryMessenger(endpoint, delegate)));
+    function deployMessenger(address endpoint, address delegate, ConfigDVN memory _options)
+        public
+        returns (IVaultRegistryMessenger messenger)
+    {
+        messenger = IVaultRegistryMessenger(
+            address(
+                new VaultRegistryMessenger(
+                    endpoint,
+                    delegate,
+                    _options.maxMessageSize,
+                    _options.confirmations,
+                    _options.sendLibrary,
+                    _options.requiredDvn,
+                    _options.executor
+                )
+            )
+        );
     }
 
     function deployRegistry(

@@ -203,9 +203,12 @@ contract VaultRegistry is Ownable {
         public
         onlyAuhtorized(msg.sender)
         vaultExists(vaultId)
-        returns (MessagingHelper.ComposedMessage[] memory _composedMessage)
+        returns (MessagingHelper.ComposedMessage[] memory _composedMessage, uint256 total)
     {
-        _composedMessage = messenger.bulkTextRegistriesQuote(vaultId, _quoteParamsCollection);
+        (MessagingHelper.ComposedMessage[] memory composedMessage, uint256 _total) =
+            messenger.bulkTextRegistriesQuote(vaultId, _quoteParamsCollection);
+        _composedMessage = composedMessage;
+        total = _total;
     }
 
     //deploys vault on the products hub chain
@@ -229,6 +232,7 @@ contract VaultRegistry is Ownable {
             uint32 eid = peerInfo[i].eid;
             bytes32 peer = peerInfo[i].peer;
             messenger.addPeer(vaultId, eid, peer);
+            messenger.setVaultDVNNative(vaultId, eid);
         }
     }
 
@@ -236,18 +240,22 @@ contract VaultRegistry is Ownable {
     function deployVaultsCrossChainQuotes(
         uint256 vaultId,
         MessagingHelper.ComposedMessageQuote[] memory _composedMessages
-    ) public vaultExists(vaultId) {
-        messenger.bulkTextRegistriesQuote(vaultId, _composedMessages);
+    ) public vaultExists(vaultId) returns (MessagingHelper.ComposedMessage[] memory composedMessages, uint256 total) {
+        (MessagingHelper.ComposedMessage[] memory __composedMessages, uint256 _total) =
+            messenger.bulkTextRegistriesQuote(vaultId, _composedMessages);
+        composedMessages = __composedMessages;
+        total = _total;
     }
 
     function composeCrossChainMessages(uint32[] memory _dstEids) public {}
 
     //should use function called textRegistry instead of vault check make sure used properly
-    function deployVaultCrossChain(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages)
-        public
-        vaultExists(vaultId)
-    {
-        bool deployed = messenger.bulkText(vaultId, _composedMessages);
+    function deployVaultCrossChain(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessage[] memory _composedMessages,
+        uint256 _total
+    ) public payable vaultExists(vaultId) {
+        bool deployed = messenger.bulkText{value: _total}(vaultId, _composedMessages);
 
         require(deployed, "Cannot dpeloy vaults multichain");
     }

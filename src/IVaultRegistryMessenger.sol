@@ -19,7 +19,9 @@ interface IVaultRegistryMessenger {
     function bulkTextRegistriesQuote(
         uint256 vaultId,
         MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
-    ) external returns (MessagingHelper.ComposedMessage[] memory _composedMessage);
+    ) external returns (MessagingHelper.ComposedMessage[] memory _composedMessage, uint256 _total);
+
+    function setVaultDVNNative(uint256 vaultId, uint32 dstEid) external;
 
     function registerOapp(address _delegate, uint256 vaultId) external;
 
@@ -42,5 +44,8 @@ interface IVaultRegistryMessenger {
 
     function createOptions() external returns (bytes memory);
     function addPeer(uint256 vaultId, uint32 eid, bytes32 peer) external;
-    function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _quoteParams) external returns (bool);
+    function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _quoteParams)
+        external
+        payable
+        returns (bool);
 }

@@ -15,10 +15,10 @@ contract VaultRegistryTest is Script {
     address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
     uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
     bytes32 peerAddr = block.chainid == 84532
-        ? addressToBytes32(0xAff00772C5F56a7A8ee53905dcDe8fbEa0989C4C)
-        : addressToBytes32(0x6e2a7f6D4cB8760C3bC88D3C0b9B10AA4c59c256);
+        ? addressToBytes32(0x4A5D7514d488f9FaE8D60ae1BF95744162F0C436)
+        : addressToBytes32(0x28a545d47063e8E095ACBa32d9e4569a801B14B4);
     address peerEndpoint = block.chainid == 84532
-        ? 0xF9af2eADe6997b98b9901097112634F605F01835
+        ? 0xdc36AFad9ca9C30371c4cB8446e7F84a41735bab
         : 0x207b52c4B6803B2D756A32D1222590b52EADaE44;
     address[] authorized = new address[](1);
 
@@ -29,29 +29,25 @@ contract VaultRegistryTest is Script {
         peers[0] = peerEndpoint;
         dstEids[0] = peerEndpointId;
         registry = block.chainid == 84532
-            ? VaultRegistry(0x6e2a7f6D4cB8760C3bC88D3C0b9B10AA4c59c256)
-            : VaultRegistry(0xF9af2eADe6997b98b9901097112634F605F01835);
+            ? VaultRegistry(0x28a545d47063e8E095ACBa32d9e4569a801B14B4)
+            : VaultRegistry(0x4A5D7514d488f9FaE8D60ae1BF95744162F0C436);
         authorized[0] = (0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
 
         // addRegistryPeer(peerEndpointId, peerAddr);
-        // // TEST VAULT CREATION
-        // // //step one
-        // (uint256 vaultId, IERC20 deployedToken, ) = testVaultCreationNative(
-        //     0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
-        //     authorized,
-        //     "TEST",
-        //     "TST",
-        //     0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
-        //     endpoint,
-        //     VaultAssets.FeesInfo(0, 0),
-        //     VaultAssets.feeReceiversInfo(address(0), address(0))
-        // );
 
-        // inAndOutNativeTest(vaultId, deployedToken);
+        (uint256 vaultId, IERC20 deployedToken,) = testVaultCreationNative(
+            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+            authorized,
+            "TEST",
+            "TST",
+            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+            endpoint,
+            VaultAssets.FeesInfo(0, 0),
+            VaultAssets.feeReceiversInfo(address(0), address(0))
+        );
 
-        //step 3 cross chain deploy
         crossChainDeployTest(
-            0,
+            vaultId,
             dstEids,
             peers,
             "String Cheese",
@@ -61,6 +57,10 @@ contract VaultRegistryTest is Script {
             VaultAssets.FeesInfo(0, 0),
             VaultAssets.feeReceiversInfo(address(0), address(0))
         );
+
+        // inAndOutNativeTest(vaultId, deployedToken);
+
+        //step 3 cross chain deploy
 
         vm.stopBroadcast();
     }
@@ -79,10 +79,10 @@ contract VaultRegistryTest is Script {
         (MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection) = composeMessageQuotes(
             _vaultId, _dstEids, _dstEndpoints, _vaultName, _vaultTicker, hubAsset, _deployer, _fees, _reciever
         );
-        (MessagingHelper.ComposedMessage[] memory _composedMessage) =
+        (MessagingHelper.ComposedMessage[] memory _composedMessage, uint256 total) =
             registry.vaultDeploymentsQuote(_vaultId, _quoteParamsCollection);
         outputComposedMessages(_composedMessage);
-        deployVaultCrossChain(_vaultId, _composedMessage);
+        deployVaultCrossChain(_vaultId, _composedMessage, total);
     }
 
     function outputComposedMessages(MessagingHelper.ComposedMessage[] memory composedMessage) public pure {
@@ -97,8 +97,12 @@ contract VaultRegistryTest is Script {
         }
     }
 
-    function deployVaultCrossChain(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _composedMessages) public {
-        registry.deployVaultCrossChain(vaultId, _composedMessages);
+    function deployVaultCrossChain(
+        uint256 vaultId,
+        MessagingHelper.ComposedMessage[] memory _composedMessages,
+        uint256 _total
+    ) public {
+        registry.deployVaultCrossChain{value: _total}(vaultId, _composedMessages, _total);
     }
 
     function composeMessageQuotes(

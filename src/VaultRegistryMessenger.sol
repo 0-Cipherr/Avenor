@@ -17,7 +17,11 @@ contract VaultRegistryMessenger is Ownable, OApp {
     address authorized;
     bool PAYINLZTOKEN = false;
     IVaultRegistry vaultRegistry; //should be vault registr interface not address for now
-
+    uint32 maxMessageSize;
+    uint64 confirmations;
+    address sendLibrary;
+    address requiredDvn;
+    address executor;
     mapping(uint256 => VaultHelper.Destination) deployedOApps;
     modifier onlyAuhtorized(address attemptedUser) {
         require(attemptedUser == authorized || attemptedUser == address(vaultRegistry), "Not authrized to perform ");
@@ -30,8 +34,27 @@ contract VaultRegistryMessenger is Ownable, OApp {
         require(isActive, "Vault does not exist");
         _;
     }
+
     //already a endpoitn and delegate variables in oapp incae we need them
-    constructor(address _endpoint, address _delegate) Ownable(_delegate) OApp(_endpoint, _delegate) {}
+    constructor(
+        address _endpoint,
+        address _delegate,
+        uint32 _maxMessageSize,
+        uint64 _confirmations,
+        address _sendLibrary,
+        address _requiredDvn,
+        address _executor
+    ) Ownable(_delegate) OApp(_endpoint, _delegate) {
+        maxMessageSize = _maxMessageSize;
+        confirmations = _confirmations;
+        sendLibrary = _sendLibrary;
+        requiredDvn = _requiredDvn;
+        executor = _executor;
+    }
+
+    function updateMaxMessagingSize(uint32 _newSize) public {
+        maxMessageSize = _newSize;
+    }
 
     function updateuahtorized(address _authorized) public {
         authorized = _authorized;
@@ -42,12 +65,18 @@ contract VaultRegistryMessenger is Ownable, OApp {
         updateuahtorized(_vaultRegistry);
     }
 
+    function setVaultDVNNative(uint256 vaultId, uint32 dstEid) public {
+        deployedOApps[vaultId].oapp
+            .configureSendPath(dstEid, sendLibrary, executor, maxMessageSize, confirmations, requiredDvn);
+    }
+
     function textRegistry(uint256 vaultId, MessagingHelper.ComposedMessage memory _composedMessage)
         public
+        payable
         onlyAuhtorized(msg.sender)
         onlyVaultExists(vaultId)
     {
-        deployedOApps[vaultId].oapp.text(_composedMessage);
+        deployedOApps[vaultId].oapp.text{value: _composedMessage._fee.nativeFee}(_composedMessage);
     }
 
     //vault should only communicate with registry at all times
@@ -80,13 +109,19 @@ contract VaultRegistryMessenger is Ownable, OApp {
     function bulkTextRegistriesQuote(
         uint256 vaultId,
         MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
-    ) public view onlyAuhtorized(msg.sender) returns (MessagingHelper.ComposedMessage[] memory _composedMessage) {
+    )
+        public
+        view
+        onlyAuhtorized(msg.sender)
+        returns (MessagingHelper.ComposedMessage[] memory _composedMessage, uint256 _total)
+    {
         _composedMessage = new MessagingHelper.ComposedMessage[](_quoteParamsCollection.length);
         for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {
             MessagingHelper.ComposedMessageQuote memory currentMessage = _quoteParamsCollection[i];
             MessagingHelper.ComposedMessage memory quote = deployedOApps[vaultId].oapp.quoteText(currentMessage);
 
             _composedMessage[i] = (quote);
+            _total += quote._fee.nativeFee;
         }
     }
 
@@ -125,7 +160,8 @@ contract VaultRegistryMessenger is Ownable, OApp {
     }
 
     function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _quoteParams)
-        public
+        external
+        payable
         onlyAuhtorized(msg.sender)
         onlyVaultExists(vaultId)
         returns (bool)
