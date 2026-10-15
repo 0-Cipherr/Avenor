@@ -105,6 +105,8 @@ contract VaultRegistryMessenger is Ownable, OApp {
         return isValid;
     }
 
+    function setMessengerPeer(uint32 eid, bytes32 peer) public {}
+
     //fix using deployed vault to interact without it existing
     function bulkTextRegistriesQuote(
         uint256 vaultId,
