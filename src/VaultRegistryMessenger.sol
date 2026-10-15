@@ -10,10 +10,15 @@ import {VaultHelper} from "./VaultHelper.sol";
 
 import {VaultOApp} from "./VaultOApp.sol";
 import {IVaultRegistry} from "./IVaultRegistry.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
+import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 
 //messenger used to handle vault messaging in the vault regitry
-
+//comminicate messenger t messenger
 contract VaultRegistryMessenger is Ownable, OApp {
+    using OptionsBuilder for bytes;
     address authorized;
     bool PAYINLZTOKEN = false;
     IVaultRegistry vaultRegistry; //should be vault registr interface not address for now
@@ -27,7 +32,6 @@ contract VaultRegistryMessenger is Ownable, OApp {
         require(attemptedUser == authorized || attemptedUser == address(vaultRegistry), "Not authrized to perform ");
         _;
     }
-
     modifier onlyVaultExists(uint256 _vaultId) {
         bool isActive = deployedOApps[_vaultId].isActive;
 
@@ -35,7 +39,6 @@ contract VaultRegistryMessenger is Ownable, OApp {
         _;
     }
 
-    //already a endpoitn and delegate variables in oapp incae we need them
     constructor(
         address _endpoint,
         address _delegate,
@@ -52,6 +55,10 @@ contract VaultRegistryMessenger is Ownable, OApp {
         executor = _executor;
     }
 
+    function newOwner(address owner) public {
+        transferOwnership(owner);
+    }
+
     function updateMaxMessagingSize(uint32 _newSize) public {
         maxMessageSize = _newSize;
     }
@@ -65,49 +72,57 @@ contract VaultRegistryMessenger is Ownable, OApp {
         updateuahtorized(_vaultRegistry);
     }
 
-    function setVaultDVNNative(uint256 vaultId, uint32 dstEid) public {
-        deployedOApps[vaultId].oapp
-            .configureSendPath(dstEid, sendLibrary, executor, maxMessageSize, confirmations, requiredDvn);
+    function setVaultDVNNative(uint32 dstEid) public {
+        configureSendPath(dstEid);
     }
 
-    function textRegistry(uint256 vaultId, MessagingHelper.ComposedMessage memory _composedMessage)
-        public
-        payable
-        onlyAuhtorized(msg.sender)
-        onlyVaultExists(vaultId)
-    {
-        deployedOApps[vaultId].oapp.text{value: _composedMessage._fee.nativeFee}(_composedMessage);
+    function configureSendPath(uint32 dstEid) public onlyOwner {
+        address[] memory requiredDvns = new address[](1);
+        requiredDvns[0] = requiredDvn;
+
+        SetConfigParam[] memory params = new SetConfigParam[](2);
+        params[0] = SetConfigParam({
+            eid: dstEid,
+            configType: 1, // Executor
+            config: abi.encode(ExecutorConfig({maxMessageSize: maxMessageSize, executor: executor}))
+        });
+        params[1] = SetConfigParam({
+            eid: dstEid,
+            configType: 2, // ULN/DVN
+            config: abi.encode(
+                UlnConfig({
+                    confirmations: confirmations,
+                    requiredDVNCount: 1,
+                    optionalDVNCount: type(uint8).max, // explicitly no optional DVNs
+                    optionalDVNThreshold: 0,
+                    requiredDVNs: requiredDvns,
+                    optionalDVNs: new address[](0)
+                })
+            )
+        });
+
+        endpoint.setConfig(address(this), sendLibrary, params);
     }
 
-    //vault should only communicate with registry at all times
-    function addPeer(uint256 vaultId, uint32 eid, bytes32 peer)
-        public
-        onlyAuhtorized(msg.sender)
-        onlyVaultExists(vaultId)
-    {
-        deployedOApps[vaultId].oapp.setPeerOApp(eid, peer);
-    }
-
-    function bulkTextRegistryQuote() public {}
-
-    function crossChainDeployVaults() public {}
-
-    function validateBulkQuote(MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection)
+    function textMessengerQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
         public
         view
         onlyAuhtorized(msg.sender)
-        returns (bool)
+        returns (MessagingHelper.ComposedMessage memory composedMessage)
     {
-        bool isValid = false;
+        bytes memory options = createOptions();
+        _quoteParams._options = options;
 
-        for (uint256 i = 0; i < _quoteParamsCollection.length; i++) {}
+        MessagingHelper.ComposedMessage memory fee = deployedOApps[vaultId].oapp.quoteText(_quoteParams);
 
-        return isValid;
+        composedMessage = fee;
     }
 
-    function setMessengerPeer(uint32 eid, bytes32 peer) public {}
+    function createOptions() public pure returns (bytes memory) {
+        // Now this syntax will compile perfectly
+        return OptionsBuilder.newOptions().addExecutorLzReceiveOption(3_000_000, 0);
+    }
 
-    //fix using deployed vault to interact without it existing
     function bulkTextRegistriesQuote(
         uint256 vaultId,
         MessagingHelper.ComposedMessageQuote[] memory _quoteParamsCollection
@@ -127,40 +142,6 @@ contract VaultRegistryMessenger is Ownable, OApp {
         }
     }
 
-    //instantiaties oapp for every vault created we need to make sperate instances because one peer per oaap per endpoint
-
-    function registerOapp(address _delegate, uint256 vaultId) public onlyAuhtorized(msg.sender) {
-        address _endpoint = address(endpoint);
-        VaultOApp registeredOApp = new VaultOApp(_endpoint, address(this), _delegate); //rvew this funccton
-
-        registeredOApp.setVaultRegistryMessenger(address(this));
-        deployedOApps[vaultId] = VaultHelper.Destination(registeredOApp, vaultId, true);
-    }
-
-    function recieveText(bytes memory call) public {
-        (bool success,) = address(vaultRegistry).call(call);
-        require(success, "TX reverted could not execute message!");
-    }
-
-    function textToRegistry(uint256 vaultId, bytes memory text) public onlyAuhtorized(msg.sender) {
-        vaultRegistry.recieveText(vaultId, text);
-    }
-
-    //fix using deployed vault to interact without it existing
-    //nvm works cuz vault will be deployed beofre hand adn registered
-    function textRegistryQuote(uint256 vaultId, MessagingHelper.ComposedMessageQuote memory _quoteParams)
-        public
-        onlyAuhtorized(msg.sender)
-        returns (MessagingHelper.ComposedMessage memory composedMessage)
-    {
-        bytes memory options = createOptions();
-        _quoteParams._options = options;
-
-        MessagingHelper.ComposedMessage memory fee = deployedOApps[vaultId].oapp.quoteText(_quoteParams);
-
-        composedMessage = fee;
-    }
-
     function bulkText(uint256 vaultId, MessagingHelper.ComposedMessage[] memory _quoteParams)
         external
         payable
@@ -170,37 +151,41 @@ contract VaultRegistryMessenger is Ownable, OApp {
     {
         for (uint256 i = 0; i < _quoteParams.length; i++) {
             MessagingHelper.ComposedMessage memory _currentQuote = _quoteParams[i];
-            textRegistry(vaultId, _currentQuote);
+            textMessengerPeer(vaultId, _currentQuote);
         }
 
         return true;
     }
 
-    //duplicate fucntion in VaultOApp
-    function constructComposedMessage(
-        uint32 _dstEid,
-        MessagingFee memory _fee,
-        bytes memory _message,
-        bytes memory _options,
-        bool payInLzToken,
-        address _refundAddress
-    ) public view onlyAuhtorized(msg.sender) returns (MessagingHelper.ComposedMessage memory composedMessage) {
-        composedMessage =
-            MessagingHelper.ComposedMessage(_dstEid, _fee, _message, _options, payInLzToken, _refundAddress);
+    function textMessengerPeer(uint256 vaultId, MessagingHelper.ComposedMessage memory _composedMessage)
+        public
+        payable
+        onlyAuhtorized(msg.sender)
+        onlyVaultExists(vaultId)
+    {
+        _lzSend(
+            _composedMessage._dstEid,
+            _composedMessage._message,
+            _composedMessage._options,
+            _composedMessage._fee,
+            _composedMessage._refundAddress
+        );
     }
 
-    //logic to be executed on desitnatioon chain
-    /**
-     * layer zero doc notes:
-     * its a structured byte array that contain multiple nstructions for desitnaton chain
-     * these options are forwarded the the service provider on destination endpoint (workers) such as :
-     *  Decentralized Verifier Networks (DVNs): These provide verification to ensure the message is valid and has not been tampered with.
-     * Executors: These are responsible for delivering and executing the message on the destination chain.
-     * -its important to note what i stated above is alread  created and deployed by layer zero:
-     * to find go to the dpeloed endpoints list layer zero has
-     * Options are how applications communicate verification and execution preferences to the off-chain workers that carry out crosschain messages.
-     */
-    function createOptions() public onlyAuhtorized(msg.sender) returns (bytes memory) {} //create proper options for vaults so messages are sent properly
+    function recieveText(bytes memory call) public {
+        (bool success,) = address(vaultRegistry).call(call); //forwards call to registry
+        require(success, "TX reverted could not execute message!");
+    }
+
+    function setMessagePeer(uint32 _eid, bytes32 _peer) internal virtual {
+        peers[_eid] = _peer;
+        emit PeerSet(_eid, _peer);
+    }
+
+    function addPeer(uint32 eid, bytes32 peer) public {
+        setMessagePeer(eid, peer);
+        setVaultDVNNative(eid);
+    }
 
     function _lzReceive(
         Origin calldata,
@@ -218,10 +203,6 @@ contract VaultRegistryMessenger is Ownable, OApp {
         override
     {
         // handle incoming LayerZero message
-        (bool success,) = address(this).call(_message);
-
-        require(success, "Message recieved but tx reverted!");
+        recieveText(_message);
     }
 }
-
-// forge build --sizes for size stats

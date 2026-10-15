@@ -124,9 +124,16 @@ contract VaultRegistry is Ownable {
         messenger.setVault(vaultAddress);
     }
 
+    //must be messenger peer address must be
+    function addMessengerPeer() public {
+        for (uint256 i = 0; i < peerInfo.length; i++) {
+            messenger.addPeer(peerInfo[i].eid, peerInfo[i].peer);
+        }
+    }
+
     //need to add all registry peers before making
-    function addRegistryPeer(uint32 eid, bytes32 registryAddr) public onlyOwner {
-        peerInfo.push(RegistryPeerInfo(eid, registryAddr));
+    function addRegistryPeer(uint32 eid, bytes32 msgAddr) public onlyOwner {
+        peerInfo.push(RegistryPeerInfo(eid, msgAddr));
     }
 
     //used to get quote to deploy one vault on another chain
@@ -139,12 +146,6 @@ contract VaultRegistry is Ownable {
         _composedMessage = messenger.textMessengerQuote(vaultId, _quoteParams);
     }
 
-    //must be messenger peer address must be
-    function addMessengerPeer(uint32 dstEid, bytes32 peer) public {
-        for (uint256 i = 0; i < peerInfo.length; i++) {
-            messenger.addPeer(peerInfo.eid, peerInfo.peer);
-        }
-    }
     //used to get quote to deploy multiple vaults on multiple chains
 
     function composeMessageQuotes(
@@ -256,10 +257,6 @@ contract VaultRegistry is Ownable {
 
     function executeCrossChainDeploy(uint256 vaultId, address _owner, bytes memory deployParams) public {
         factory.deployVaultCrossChain(vaultId, deployParams);
-
-        messenger.registerOapp(_owner, vaultId);
-
-        addRegistiryPeersVault(vaultId); //addd peers upon creation
     }
 
     function recieveText(uint256 vaultId, bytes memory _text) public vaultExists(vaultId) {

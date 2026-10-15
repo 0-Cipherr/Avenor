@@ -5,7 +5,7 @@ import {MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
 interface IVaultRegistryMessenger {
     function updateMaxMessagingSize(uint32 newSize) external;
-
+    function newOwner(address owner) external;
     function updateuahtorized(address authorized) external;
 
     function setVault(address vaultRegistry) external;

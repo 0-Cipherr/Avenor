@@ -9,14 +9,15 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {VaultHelper} from "../src/VaultHelper.sol";
 import {TokenDeployer} from "../src/TokenDeployer.sol";
 import {MessagingHelper} from "../src/MessagingHelper.sol";
+import {IVaultRegistryMessenger} from "../src/IVaultRegistryMessenger.sol";
 
 contract VaultRegistryTest is Script {
     VaultRegistry registry;
     address endpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f;
     uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
     bytes32 peerAddr = block.chainid == 84532
-        ? addressToBytes32(0x4A5D7514d488f9FaE8D60ae1BF95744162F0C436)
-        : addressToBytes32(0x28a545d47063e8E095ACBa32d9e4569a801B14B4);
+        ? addressToBytes32(0x808d84Dd06a21A578824d11fDCE3FAc17C474aA4)
+        : addressToBytes32(0x7042444BC913364f0bF01e3F9d49c8Ae789AF04A);
     address peerEndpoint = block.chainid == 84532
         ? 0xdc36AFad9ca9C30371c4cB8446e7F84a41735bab
         : 0x207b52c4B6803B2D756A32D1222590b52EADaE44;
@@ -29,40 +30,48 @@ contract VaultRegistryTest is Script {
         peers[0] = peerEndpoint;
         dstEids[0] = peerEndpointId;
         registry = block.chainid == 84532
-            ? VaultRegistry(0x28a545d47063e8E095ACBa32d9e4569a801B14B4)
-            : VaultRegistry(0x4A5D7514d488f9FaE8D60ae1BF95744162F0C436);
+            ? VaultRegistry(0x3e5de5FbFfcE7E40268F5CC8aCDCEbeABcB47bDD)
+            : VaultRegistry(0x808d84Dd06a21A578824d11fDCE3FAc17C474aA4);
         authorized[0] = (0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
+        address messengerFactory = block.chainid == 84532
+            ? 0xff613C076DCdD9678aC10A1E7F2Ae0fcad060e27
+            : 0xff613C076DCdD9678aC10A1E7F2Ae0fcad060e27;
+        setNewMessengerOwner(messengerFactory, addresss(registry));
+        addRegistryPeer(peerEndpointId, peerAddr);
+        addMessengerPee();
 
-        // addRegistryPeer(peerEndpointId, peerAddr);
+        // (uint256 vaultId, IERC20 deployedToken, ) = testVaultCreationNative(
+        //     0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+        //     authorized,
+        //     "TEST",
+        //     "TST",
+        //     0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+        //     endpoint,
+        //     VaultAssets.FeesInfo(0, 0),
+        //     VaultAssets.feeReceiversInfo(address(0), address(0))
+        // );
 
-        (uint256 vaultId, IERC20 deployedToken,) = testVaultCreationNative(
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
-            authorized,
-            "TEST",
-            "TST",
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
-            endpoint,
-            VaultAssets.FeesInfo(0, 0),
-            VaultAssets.feeReceiversInfo(address(0), address(0))
-        );
-
-        crossChainDeployTest(
-            vaultId,
-            dstEids,
-            peers,
-            "String Cheese",
-            "CHS",
-            IERC20(address(0)),
-            0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
-            VaultAssets.FeesInfo(0, 0),
-            VaultAssets.feeReceiversInfo(address(0), address(0))
-        );
+        // crossChainDeployTest(
+        //     vaultId,
+        //     dstEids,
+        //     peers,
+        //     "String Cheese",
+        //     "CHS",
+        //     IERC20(address(0)),
+        //     0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+        //     VaultAssets.FeesInfo(0, 0),
+        //     VaultAssets.feeReceiversInfo(address(0), address(0))
+        // );
 
         // inAndOutNativeTest(vaultId, deployedToken);
 
         //step 3 cross chain deploy
 
         vm.stopBroadcast();
+    }
+
+    function setNewMessengerOwner(address messenger, address owner) public {
+        IVaultRegistryMessenger(messenger).newOwner(owner);
     }
 
     function crossChainDeployTest(
@@ -176,6 +185,10 @@ contract VaultRegistryTest is Script {
 
     function setRegistry(address _registry) public {
         registry = VaultRegistry(_registry);
+    }
+
+    function addMessengerPee() public {
+        registry.addMessengerPeer();
     }
 
     function testVaultCreationNative(
