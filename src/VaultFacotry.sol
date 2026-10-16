@@ -69,11 +69,11 @@ contract VaultFactory {
     }
 
     function verifyVault(uint256 vaultId) public view returns (bool isValid) {
+        isValid = false;
+
         for (uint256 i = 0; i < currentVaultId; i++) {
             bool isVaultInitiated = vaultsDeployed[i].creator != address(0); //if doesnt exist defauts to zeor adress
-            if (!isVaultInitiated && currentVaultId == i) {
-                isValid = false;
-            } else if (isVaultInitiated && vaultId == i) {
+            if (isVaultInitiated && vaultId == i) {
                 isValid = true;
                 break;
             }

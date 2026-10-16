@@ -27,3 +27,10 @@ echo "=== Both interactions done  ==="
 
 
 
+
+# forge script script/VaultRegistryTest.s.sol:VaultRegistryTest \
+#   --rpc-url "https://arbitrum-sepolia-rpc.publicnode.com" \
+#   --account Avenor_Multi \
+#   --password-file .password \
+#   --broadcast \
+#   -vvvv

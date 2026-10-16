@@ -17,8 +17,8 @@ contract VaultRegistryTest is Script {
     uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
     bytes32 peerAddr =
         block.chainid == 84532
-            ? addressToBytes32(0x808d84Dd06a21A578824d11fDCE3FAc17C474aA4)
-            : addressToBytes32(0x98B4FE3C5DC0efF361724D4499cd67190DEd07a2);
+            ? addressToBytes32(0x3397B098f97aD06FEA2575b8C93CF303ca06cd4d)
+            : addressToBytes32(0xCC67544A84a65a9A88A77d0358c42DD0010DbCea);
     address peerEndpoint =
         block.chainid == 84532
             ? 0xdc36AFad9ca9C30371c4cB8446e7F84a41735bab
@@ -32,12 +32,12 @@ contract VaultRegistryTest is Script {
         peers[0] = peerEndpoint;
         dstEids[0] = peerEndpointId;
         registry = block.chainid == 84532
-            ? VaultRegistry(0x98B4FE3C5DC0efF361724D4499cd67190DEd07a2)
-            : VaultRegistry(0x19834971Ee03b878e2A827BF5fB4CF9141F45075);
-        authorized[0] = (0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d);
+            ? VaultRegistry(0xCC67544A84a65a9A88A77d0358c42DD0010DbCea)
+            : VaultRegistry(0x3397B098f97aD06FEA2575b8C93CF303ca06cd4d);
+        authorized[0] = (0x14A32192CAc22C5C89611c292e0FF8A21eb18671);
         address messengerFactory = block.chainid == 84532
-            ? 0x4976e1b8a8711e60F110F5a5B65A0FA5ACED2F6E
-            : 0x800c10f8a56574d8D048964383893DE339aE3B0A;
+            ? 0xcB581BE7764d8C97B10DCa7A37B852bc4CfCd87F
+            : 0xe70e3878F2FdfdB6C1E7df115C3F815f2e5949AF;
         // setNewMessengerOwner(messengerFactory, address(registry));
         // addRegistryPeer(peerEndpointId, peerAddr);
         // addMessengerPee();
@@ -64,6 +64,28 @@ contract VaultRegistryTest is Script {
             VaultAssets.FeesInfo(0, 0),
             VaultAssets.feeReceiversInfo(address(0), address(0))
         );
+
+        // crossChainDeployTest(
+        //     vaultId, // (uint256 vaultId, IERC20 deployedToken, ) = testVaultCreationNative(
+        //     0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+        //     authorized,
+        //     "TEST",
+        //     "TST",
+        //     0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+        //     endpoint,
+        //     VaultAssets.FeesInfo(0, 0),
+        //     VaultAssets.feeReceiversInfo(address(0), address(0))
+        // );
+
+        //     dstEids,
+        //     peers,
+        //     "String Cheese",
+        //     "CHS",
+        //     IERC20(address(0)),
+        //     0xa24e1426Bc37d0D1a9e7037f5De3322E800F2D7d,
+        //     VaultAssets.FeesInfo(0, 0),
+        //     VaultAssets.feeReceiversInfo(address(0), address(0))
+        // );
 
         // inAndOutNativeTest(vaultId, deployedToken);
 
