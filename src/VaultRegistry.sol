@@ -167,10 +167,9 @@ contract VaultRegistry is Ownable {
             (VaultHelper.VaultDeployParams memory _constructorArg) = constructVaultDeployParams(
                 _deployer, _vaultName, _vaultTicker, hubAsset, _fees, _reciever, _dstEndpoints[i]
             );
-            bytes memory subMessage = abi.encodeWithSignature(
+            bytes memory message = abi.encodeWithSignature(
                 "executeCrossChainDeploy(uint256,address,bytes)", vaultId, _deployer, abi.encode(_constructorArg)
             );
-            bytes memory message = abi.encodeWithSignature("recieveText(bytes)", subMessage);
             bytes memory options = getOptions();
             _quoteParamsCollection[i] = MessagingHelper.ComposedMessageQuote(currentId, message, _deployer, options);
         }

@@ -16,16 +16,16 @@ contract VaultRegistryTest is Script {
     uint32 peerEndpointId = block.chainid == 84532 ? 40231 : 40245;
 
     VaultRegistry registry = block.chainid == 84532
-        ? VaultRegistry(0x2236ff6C2d77C6ECD9cC52239A171DF6414d5CB4)
-        : VaultRegistry(0xb2bF34564dbf8b62dD2b6D0A2CDbD9B51e6632BD);
+        ? VaultRegistry(0xdC4A27216d63c105253fb6133798B81177bfA65d)
+        : VaultRegistry(0xE30b8793ec6120Ea3eDa6654A1Bdcb651B72a48c);
     bytes32 msgrPeerAddr = block.chainid == 84532
-        ? addressToBytes32(0x4c3D46c3E9D0bC0b1b95eF6E3b5513e919B5493f)
-        : addressToBytes32(0xBafC1dc3acD6E913F06e6ad9F88294553Bd3AF27);
+        ? addressToBytes32(0x1638C457E47F20B398147C632B41be5c9e2aB7c7)
+        : addressToBytes32(0x909f3F0563564896d53EFB2D11ED95d549b19ef7);
 
     //////non changable
     address messengerFactory = block.chainid == 84532
-        ? 0xBafC1dc3acD6E913F06e6ad9F88294553Bd3AF27
-        : 0x4c3D46c3E9D0bC0b1b95eF6E3b5513e919B5493f;
+        ? 0x909f3F0563564896d53EFB2D11ED95d549b19ef7
+        : 0x1638C457E47F20B398147C632B41be5c9e2aB7c7;
 
     address peerEndpoint = block.chainid == 84532
         ? 0xdc36AFad9ca9C30371c4cB8446e7F84a41735bab
